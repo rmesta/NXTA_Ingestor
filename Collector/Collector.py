@@ -48,6 +48,7 @@ output_file = tmpoutput + ".tar.gz"         # modifiable via cmd-line, changes
                                             # here will be ignored!
 config_file = "/etc/collector.conf"         # modifiable via cmd-line
 config_file_set = False
+get_new_config_file = False
 working_dir = tmpworkdir + "/"              # modifiable via cmd-line
 verbose = False                             # modifiable via cmd-line
 silent = False                              # modifiable via cmd-line
@@ -67,7 +68,7 @@ cmd_run = 0
 cmd_success = 0
 cmd_terminate = 0
 ftp_server = "ftp.nexenta.com"
-ftp_server_set = False
+ftp_server_set = True 
 output_dir_set = False
 default_mode = True
 output_file_set = False
@@ -159,6 +160,11 @@ def upload_to_ftp(file_to_upload, fserver):
 
         return False
 
+    md5proc = process("md5sum " + file_to_upload + " > " + file_to_upload + ".md5")
+    md5procout = md5proc.communicate()
+
+    file_to_upload_md5_fh = open(file_to_upload, 'r')
+
     try:
         ftp = FTP(fserver)
         ftp.login()
@@ -167,6 +173,7 @@ def upload_to_ftp(file_to_upload, fserver):
         ftp.sendcmd("cwd caselogs")
 
         ftp.storbinary("STOR " + os.path.basename(file_to_upload), file_to_upload_fh)
+        ftp.storbinary("STOR " + os.path.basename(file_to_upload + ".md5"), file_to_upload_md5_fh)
 
         ftp.quit()
 
@@ -332,6 +339,7 @@ def parse_cmd_line():
     global working_dir
     global config_file
     global config_file_set
+    global get_new_config_file
     global destroy_output_dir
     global silent
     global output_file
@@ -345,10 +353,10 @@ def parse_cmd_line():
     global ftp_server_set
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "ho:c:vfwxstn:p:", \
+        opts, args = getopt.getopt(sys.argv[1:], "ho:c:vfwxsgtn:p:", \
                                    ["help", "output-dir=", "config=", \
                                    "verbose", "output-file=", "working-dir=", \
-                                   "no-destroy-output-dir", "silent", "no-touch"\
+                                   "no-destroy-output-dir", "silent", "get-new-config", "no-touch"\
                                    "num-threads=", "ftp="])
     except getopt.GetoptError, err:
         print str(err)
@@ -375,6 +383,8 @@ def parse_cmd_line():
         elif opt in ("--config"):
             config_file_set = True
             config_file = arg
+        elif opt in ("-g", "--get-new-config"):
+            get_new_config_file = True
         elif opt in ("-s", "--silent"):
             silent = True
         elif opt in ("--num-threads"):
@@ -826,6 +836,7 @@ def main():
     global output_file_set
     global working_dir_set
     global config_file_set
+    global get_new_config_file
     global std_out
     global std_err
     global license
@@ -845,9 +856,8 @@ def main():
 
     parse_cmd_line()    # does what it sounds like
 
-    # only run this if we didn't specify a config file to use; if we did, one can assume
-    # we shouldn't be trying to update it!
-    if config_file_set == False:
+    # snag new config file if requested
+    if get_new_config_file == True:
         get_new_collector_conf()
 
     parse_config_file()  # same deal
