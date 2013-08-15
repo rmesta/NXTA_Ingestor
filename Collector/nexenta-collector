@@ -10,7 +10,7 @@ directory by updating its files where appropriate with each run.
 Information on runtime options can be found by using '-h' when running
 this script.
 
-This script is PyDoc compliant -- run "pydoc ./Collector.py" for a
+This script is PyDoc compliant -- run "pydoc ./nexenta-collector.py" for a
 PyDoc-generated man page if you are intending to modify."""
 
 # YOU SHOULD NOT BE EDITING THIS SCRIPT BY HAND WITHOUT EXPLICIT PERMISSION
@@ -54,6 +54,7 @@ verbose = False                             # modifiable via cmd-line
 silent = False                              # modifiable via cmd-line
 destroy_output_dir = True                   # modifiable via cmd-line
 num_worker_threads = 8                      # modifiable via cmd-line
+cleanup_output_set = True 
 
 # do not edit below this line
 q = Queue()
@@ -62,7 +63,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "0022"
+coll_ver = "1.0.1"
 cmd_init = 0
 cmd_run = 0
 cmd_success = 0
@@ -134,7 +135,7 @@ def usage(input):
     print "                     effectively tells this script to run"
     print "                     in a serial mode. Default: 8"
     print ""
-    print "    -t, --no-touch:  Choose this to disable touching files in"
+    print "    --no-touch:      Choose this to disable touching files in"
     print "                     the working directory if the output of"
     print "                     this run is identical. This option has"
     print "                     no impact unless used in conjunction with"
@@ -144,10 +145,21 @@ def usage(input):
     print "                     implicity says to attempt uploading ouput"
     print "                     file there. Only works in output-file mode."
     print ""
+    print "    --no-ftp:        Turns off FTP upload, leaves output file."
+    print ""
     print "    -v, --verbose:   Turns on verbose output to STDOUT. Not"
     print "                     recommended except for debugging purposes."
     print ""
     print "    -h, --help:      Produces this help screen."
+
+def add_commas(x):
+    result = ""
+
+    while x >= 1000:
+        x, r = divmod(x, 1000)
+        result = ",%03d%s" % (r, result)
+
+    return "%d%s" % (x, result)
 
 def upload_to_ftp(file_to_upload, fserver):
     """Function used to upload final output tarball to an FTP server."""
@@ -164,6 +176,11 @@ def upload_to_ftp(file_to_upload, fserver):
     md5procout = md5proc.communicate()
 
     file_to_upload_md5_fh = open(file_to_upload + ".md5", 'r')
+
+    file_size = add_commas(os.path.getsize(file_to_upload))
+
+    if silent == False:
+        print "FTP Upload commencing. File size: " + file_size + " KB. Please wait."
 
     try:
         ftp = FTP(fserver)
@@ -187,6 +204,28 @@ def upload_to_ftp(file_to_upload, fserver):
             print "FTP Upload failed."
 
         return False
+
+def cleanup_output(file_to_cleanup, has_md5):
+    """Function used to clean up final output file(s)."""
+
+    if has_md5 == True:
+        try:
+            md5rmproc = process("rm -f " + file_to_cleanup + ".md5")
+            md5rmprocout = md5rmproc.communicate()
+        except:
+            if verbose == True:
+                print "MD5 file removal failed."
+
+    try:
+        filermproc = process("rm -f " + file_to_cleanup)
+        filermprocout = filermproc.communicate()
+    except:
+        if verbose == True:
+            print "File output removal failed."
+
+        return False
+
+    return True
 
 def get_new_collector_conf():
     """Attempts to download a new collector.conf file from Nexenta."""
@@ -351,13 +390,14 @@ def parse_cmd_line():
     global default_mode
     global ftp_server
     global ftp_server_set
+    global cleanup_output_set
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "ho:c:vfwxsgtn:p:", \
-                                   ["help", "output-dir=", "config=", \
-                                   "verbose", "output-file=", "working-dir=", \
-                                   "no-destroy-output-dir", "silent", "get-new-config", "no-touch"\
-                                   "num-threads=", "ftp="])
+        opts, args = getopt.getopt(sys.argv[1:], "vho:f:w:c:gst:p:nxt", \
+                                    ["verbose", "help", "output-dir=", "output-file=", \
+                                    "working-dir=", "config=", "get-new-config", "silent", \
+                                    "num-threads=", "ftp=", "no-ftp", "no-destroy-output-dir", \
+                                    "no-touch"])
     except getopt.GetoptError, err:
         print str(err)
         usage("")
@@ -369,29 +409,33 @@ def parse_cmd_line():
         elif opt in ("-h", "--help"):
             usage("")
             sys.exit(1)
-        elif opt in ("--output-dir"):
+        elif opt in ("-o", "--output-dir"):
             output_dir = arg + "/"
             output_dir_set = True
-        elif opt in ("--output-file"):
+        elif opt in ("-f", "--output-file"):
             output_file = arg
             output_file_set = True
             default_mode = False
-        elif opt in ("--working-dir"):
+        elif opt in ("-w", "--working-dir"):
             working_dir = arg + "/"
             working_dir_set = True
             default_mode = False
-        elif opt in ("--config"):
+        elif opt in ("-c", "--config"):
             config_file_set = True
             config_file = arg
         elif opt in ("-g", "--get-new-config"):
             get_new_config_file = True
         elif opt in ("-s", "--silent"):
             silent = True
-        elif opt in ("--num-threads"):
+        elif opt in ("-t", "--num-threads"):
             num_worker_threads = int(arg)
         elif opt in ("-p", "--ftp"):
             ftp_server_set = True
             ftp_server = arg
+            cleanup_output_set = True
+        elif opt in ("-n", "--no-ftp"):
+            ftp_server_set = False
+            cleanup_output_set = False
         elif opt in ("-x", "--no-destroy-output-dir"):
             destroy_output_dir = False
         elif opt in ("-t", "--no-touch"):
@@ -871,6 +915,7 @@ def main():
     global cmd_success
     global cmd_terminate
     global default_mode
+    global cleanup_output_set
 
     x = 1
     script_started = time.time()        # for accounting purposes
@@ -1064,6 +1109,12 @@ def main():
     if ftp_server_set == True:
         upload_to_ftp(output_file, ftp_server)
 
+    if cleanup_output_set == True:
+        if ftp_server_set == True:
+            cleanup_output(output_file, True)
+        else:
+            cleanup_output(output_file, False)
+
     sys.exit(0)
         
 # pydoc related
@@ -1080,4 +1131,4 @@ __created_date__    = "$Date: 2011-05-31 13:32:01 +0600 (Tue, 31 May 2011) $"
 __last_updated__    = "$Date: 2013-08-15 02:23:00 +0700 (Thu, 15 Aug 2013) $"
 __maintainer__      = "Andrew Galloway"
 __email__           = "andrew.galloway@nexenta.com"
-__status__          = "Release Candidate"
+__status__          = "Release"
