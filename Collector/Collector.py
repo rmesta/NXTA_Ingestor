@@ -62,7 +62,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "0021"
+coll_ver = "0022"
 cmd_init = 0
 cmd_run = 0
 cmd_success = 0
@@ -163,7 +163,7 @@ def upload_to_ftp(file_to_upload, fserver):
     md5proc = process("md5sum " + file_to_upload + " > " + file_to_upload + ".md5")
     md5procout = md5proc.communicate()
 
-    file_to_upload_md5_fh = open(file_to_upload, 'r')
+    file_to_upload_md5_fh = open(file_to_upload + ".md5", 'r')
 
     try:
         ftp = FTP(fserver)
@@ -173,7 +173,7 @@ def upload_to_ftp(file_to_upload, fserver):
         ftp.sendcmd("cwd caselogs")
 
         ftp.storbinary("STOR " + os.path.basename(file_to_upload), file_to_upload_fh)
-        ftp.storbinary("STOR " + os.path.basename(file_to_upload + ".md5"), file_to_upload_md5_fh)
+        ftp.storlines("STOR " + os.path.basename(file_to_upload + ".md5"), file_to_upload_md5_fh)
 
         ftp.quit()
 
@@ -559,6 +559,22 @@ class Command(object):
             if not self.args.has_key("timeout"):
                 self.args["timeout"] = 300 
 
+        # dir (directory) requires file-label, always assumes gzip
+        elif self.type == "tar":
+            if not self.args.has_key("file-label") or self.args["file-label"] == "":
+                self.args["file-label"] = sanitize_file_label("tar -czf " + self.cmd)
+
+            self.cmd_line = "tar -czf " + output_dir + self.group + "/" + \
+                self.args["file-label"] + ".tar.gz" + " " + str(self.cmd)
+
+            # as it is being treated as a command, it needs a timeout
+            if not self.args.has_key("timeout"):
+                self.args["timeout"] = 300
+
+            # to hit the proper logic tree, tars must always have gzip true
+            if self.args.has_key("gzip") and self.args["gzip"] == False:
+                self.args["gzip"] == True 
+
         # command understands 'gzip' and 'timeout', but 'gzip' logic is
         # done later
         elif self.type == "cmd":
@@ -622,8 +638,13 @@ class Command(object):
                 # being piped around already - can still capture stderr
                 # so we do
                 if self.args.has_key("gzip") and self.args["gzip"] == True:
-                    self.cmd_line = self.cmd_line + " | gzip -c > " + \
-                            filestub + ".out.gz"
+
+                    # for tar cmds we shouldn't do this, but we do want
+                    # to use this logic tree, as there's no point in
+                    # trying to capture stdout on a tar command
+                    if self.type != "tar":
+                        self.cmd_line = self.cmd_line + " | gzip -c > " + \
+                                filestub + ".out.gz"
 
                     self.err_f = open(filestub + ".err", "w")
 
@@ -729,7 +750,7 @@ class Command(object):
                     str(self.ended_at - self.started_at) + " seconds."
 
         if self.args.has_key("file-label") and self.args["file-label"] != "":
-            # file label should only exist for COMMANDS -- files and logs
+            # file label should only exist for COMMANDS & TARS -- files and logs
             # will just skip this since they never have file-label set
             filestub = output_dir + self.group + "/" + \
                     self.args["file-label"]
@@ -1056,7 +1077,7 @@ __credits__         = ["Andrew Galloway", "Sam Zaydel", "Craig Morgan"]
 __license__         = "undefined"
 __version__         = "$Revision: " + coll_ver + " $"
 __created_date__    = "$Date: 2011-05-31 13:32:01 +0600 (Tue, 31 May 2011) $"
-__last_updated__    = "$Date: 2013-02-28 20:19:00 +0800 (Thu, 28 Feb 2013) $"
+__last_updated__    = "$Date: 2013-08-15 02:23:00 +0700 (Thu, 15 Aug 2013) $"
 __maintainer__      = "Andrew Galloway"
 __email__           = "andrew.galloway@nexenta.com"
-__status__          = "Beta"
+__status__          = "Release Candidate"
