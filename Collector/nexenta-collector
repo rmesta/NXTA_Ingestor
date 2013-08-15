@@ -10,7 +10,7 @@ directory by updating its files where appropriate with each run.
 Information on runtime options can be found by using '-h' when running
 this script.
 
-This script is PyDoc compliant -- run "pydoc ./nexenta-collector.py" for a
+This script is PyDoc compliant -- run "pydoc ./Collector.py" for a
 PyDoc-generated man page if you are intending to modify."""
 
 # YOU SHOULD NOT BE EDITING THIS SCRIPT BY HAND WITHOUT EXPLICIT PERMISSION
@@ -62,7 +62,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.0.1"
+coll_ver = "0022"
 cmd_init = 0
 cmd_run = 0
 cmd_success = 0
@@ -1080,4 +1080,4 @@ __created_date__    = "$Date: 2011-05-31 13:32:01 +0600 (Tue, 31 May 2011) $"
 __last_updated__    = "$Date: 2013-08-15 02:23:00 +0700 (Thu, 15 Aug 2013) $"
 __maintainer__      = "Andrew Galloway"
 __email__           = "andrew.galloway@nexenta.com"
-__status__          = "Release"
+__status__          = "Release Candidate"
