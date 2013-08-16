@@ -63,7 +63,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.0.2"
+coll_ver = "1.0.3"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -1020,21 +1020,17 @@ def main():
 
         x = x + 1
 
+    cmd_total = q.qsize()
+
     if silent == False:
         print "done. " + str(q.qsize()) + " commands in queue."
-        cmd_total = q.qsize()
-        print "Preparing output directory (" + output_dir + ")",
+        print "Output directory (" + output_dir + ")".
 
         if working_dir_set == True:
-            print "& working directory (" + working_dir + ")",
+            print "Working directory (" + working_dir + ")".
         
-        print "..",
-
     # create working directory structure based on groups
     prepare_working_dir(groups)
-
-    if silent == False:
-        print "done."
 
     if silent == False:
         print "Beginning command run @ " + time.ctime(time.time()) + "."
