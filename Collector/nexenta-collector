@@ -881,13 +881,14 @@ def worker():
 def watcher():
     """Watcher thread - job is to provide progress bar on commands run."""
     
-    global q
     global cmd_total
     global cmd_success
     global cmd_terminate
     global progressbar_width
     global spinner
     global percent
+    global silent
+    global verbose
 
     while percent < 100:
 
@@ -903,8 +904,11 @@ def watcher():
         spinner += 1
         if spinner >= 4: spinner = 0
 
-        sys.stdout.write("\r %s [%s%s] %s\t" % (spinchar, "-" * (percent/2), " " * (progressbar_width - (percent/2)), str(percent)))
-        sys.stdout.flush()
+        # there is no point to this printout if verbose is set, it'd just mangle everything up anyway
+        # similarly in silent mode we shouldn't print
+        if silent == False and verbose == False:
+            sys.stdout.write("\r %s [%s%s] %s\t" % (spinchar, "-" * (percent/2), " " * (progressbar_width - (percent/2)), str(percent)))
+            sys.stdout.flush()
 
         time.sleep(0.5)
 
