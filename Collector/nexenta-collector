@@ -64,6 +64,10 @@ hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
 coll_ver = "1.0.1"
+cmd_total = 0
+percent = 0
+progressbar_width = 50
+spinner = 0
 cmd_init = 0
 cmd_run = 0
 cmd_success = 0
@@ -177,10 +181,10 @@ def upload_to_ftp(file_to_upload, fserver):
 
     file_to_upload_md5_fh = open(file_to_upload + ".md5", 'r')
 
-    file_size = add_commas(os.path.getsize(file_to_upload))
+    file_size = add_commas((os.path.getsize(file_to_upload) / 1024))
 
     if silent == False:
-        print "FTP Upload commencing. File size: " + file_size + " KB. Please wait."
+        print "FTP upload commencing, file size: " + file_size + " KB. Please wait."
 
     try:
         ftp = FTP(fserver)
@@ -201,7 +205,7 @@ def upload_to_ftp(file_to_upload, fserver):
 
     except:
         if silent == False:
-            print "FTP Upload failed."
+            print "FTP upload failed."
 
         return False
 
@@ -241,10 +245,10 @@ def get_new_collector_conf():
         #urllib.urlretrieve('http://www.nexenta.com/support-collector.conf', '/tmp/collector.conf')
         #urllib.urlretrieve('http://www.nexenta.com/support-collector.md5', '/tmp/collector.conf.md5')
 
-        getconf = process("wget http://www.nexenta.com/support-collector.conf -O /tmp/collector.conf --quiet --timeout=10")
+        getconf = process("wget http://www.nexenta.com/support-collector.conf -O /tmp/collector.conf --quiet --timeout=30")
         getconf.communicate()
 
-        getmd5 = process("wget http://www.nexenta.com/support-collector.conf.md5 -O /tmp/collector.conf.md5 --quiet --timeout=10")
+        getmd5 = process("wget http://www.nexenta.com/support-collector.conf.md5 -O /tmp/collector.conf.md5 --quiet --timeout=30")
         getmd5.communicate()
     except:
         # don't need to do anything, really
@@ -872,9 +876,39 @@ def worker():
         
             q.task_done()
 
-        if silent == False and verbose == False:
-            sys.stdout.write(".")
-            sys.stdout.flush()
+    return True
+
+def watcher():
+    """Watcher thread - job is to provide progress bar on commands run."""
+    
+    global q
+    global cmd_total
+    global cmd_success
+    global cmd_terminate
+    global progressbar_width
+    global spinner
+    global percent
+
+    while percent < 100:
+
+        completed = cmd_success + cmd_terminate
+
+        percent = 100 * completed / cmd_total
+
+        if spinner == 0: spinchar = "/"
+        if spinner == 1: spinchar = "-"
+        if spinner == 2: spinchar = "\\"
+        if spinner == 3: spinchar = "|"
+        
+        spinner += 1
+        if spinner >= 4: spinner = 0
+
+        sys.stdout.write("\r %s [%s%s] %s\t" % (spinchar, "-" * (percent/2), " " * (progressbar_width - (percent/2)), str(percent)))
+        sys.stdout.flush()
+
+        time.sleep(0.5)
+
+    sys.stdout.write("\r %s [%s] %s\n" % (" ", "-" * progressbar_width, "100"))
 
     return True
 
@@ -910,6 +944,7 @@ def main():
     global fqdn
     global app_ver
     global coll_ver
+    global cmd_total
     global cmd_init
     global cmd_run
     global cmd_success
@@ -983,6 +1018,7 @@ def main():
 
     if silent == False:
         print "done. " + str(q.qsize()) + " commands in queue."
+        cmd_total = q.qsize()
         print "Preparing output directory (" + output_dir + ")",
 
         if working_dir_set == True:
@@ -1008,8 +1044,11 @@ def main():
         t = Thread(target=worker)
         t.start()
 
+    t = Thread(target=watcher)
+    t.start()
+
     if silent == False and verbose == False:
-        print "Progress (do not be alarmed by long, possibly minute+ pauses): ",
+        print "This may take several minutes, do not be alarmed by apparently long pauses."
 
     # wait for all to complete, or timeout if 15 minutes elapsed
     signal.signal(signal.SIGALRM, alarm_handler)
@@ -1024,6 +1063,9 @@ def main():
             print "Something has gone wrong!"
 
         sys.exit(1)
+
+    # required to prevent odd print issues as the queue finishes up
+    time.sleep(1)
 
     if silent == False:
         if verbose == False:
