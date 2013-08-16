@@ -634,7 +634,7 @@ class Command(object):
             self.cmd_line = str(self.cmd)
 
             if not self.args.has_key("timeout"):
-                self.args["timeout"] = 60 
+                self.args["timeout"] = 120 
 
             # commands need a file-label - it's important in this code
             # and necessary; if someone forgot it in the conf file,
