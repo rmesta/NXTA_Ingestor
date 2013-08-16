@@ -912,7 +912,8 @@ def watcher():
 
         time.sleep(0.5)
 
-    sys.stdout.write("\r %s [%s] %s\n" % (" ", "-" * progressbar_width, "100"))
+    if silent == False and verbose == False:
+        sys.stdout.write("\r %s [%s] %s\n" % (" ", "-" * progressbar_width, "100"))
 
     return True
 
