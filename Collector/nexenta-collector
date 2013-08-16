@@ -1024,10 +1024,10 @@ def main():
 
     if silent == False:
         print "done. " + str(q.qsize()) + " commands in queue."
-        print "Output directory (" + output_dir + ")".
+        print "Output directory: " + output_dir
 
         if working_dir_set == True:
-            print "Working directory (" + working_dir + ")".
+            print "Working directory: " + working_dir
         
     # create working directory structure based on groups
     prepare_working_dir(groups)
