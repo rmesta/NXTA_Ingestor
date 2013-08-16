@@ -460,7 +460,12 @@ def parse_cmd_line():
 def sanitize_file_label(label):
     """Sanitizes file-label variables to not include characters that aren't acceptable in a filename."""
 
-    tmp = unicode(label, 'ascii')
+    try:
+        tmp = unicode(label, 'ascii')
+    except:
+        tmp = label
+        # we're doing this to get around an issue with 4.x, possibly
+
     tmp = unicodedata.normalize('NFKD', \
                                 tmp).encode('ascii', 'ignore')
 
@@ -1036,6 +1041,9 @@ def main():
     if silent == False:
         print "Beginning command run @ " + time.ctime(time.time()) + "."
 
+        if verbose == False:
+            print "This may take several minutes, do not be alartmed by apparently long pauses."
+
     # initialize the worker threads - since the queue is populated they
     # will immediately begin eating through it
     for i in range(num_worker_threads):
@@ -1047,9 +1055,6 @@ def main():
 
     t = Thread(target=watcher)
     t.start()
-
-    if silent == False and verbose == False:
-        print "This may take several minutes, do not be alarmed by apparently long pauses."
 
     # wait for all to complete, or timeout if 15 minutes elapsed
     signal.signal(signal.SIGALRM, alarm_handler)
