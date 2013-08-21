@@ -63,7 +63,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.0.5"
+coll_ver = "1.0.6"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -82,6 +82,11 @@ stuff_to_do = False
 script_started = None
 script_ended = None
 no_touch = False
+
+# added to handle potential requested exit changes later
+def do_exit(code):
+    """Exit handler function."""
+    sys.exit(code)
 
 def usage(input):
     """Usage text - displayed to command line when -h is called or an invalid
@@ -316,7 +321,7 @@ def get_appliance_info():
         fqdn = socket.getfqdn()
     except:
         print "Error occurred detecting hostname or FQDN. Aborting!"
-        sys.exit(1)
+        do_exit(1)
 
     # not using 'with' because 3.0 uses Python 2.5, not 2.6
     try:
@@ -334,7 +339,7 @@ def get_appliance_info():
     except:
         print "Error occurred detecting Nexenta license key. Is this a " \
                 "NexentaStor appliance? Aborting!"
-        sys.exit(1)
+        do_exit(1)
 
     try:
         f = open("/etc/issue", "r")
@@ -345,7 +350,7 @@ def get_appliance_info():
 
     except:
         print "Error occurred detecting Nexenta version. Aborting!"
-        sys.exit(1)
+        do_exit(1)
 
 def prepare_working_dir(groups):
     """Prepares the output directory and verifies working directory if applicable."""
@@ -357,14 +362,14 @@ def prepare_working_dir(groups):
     if os.path.exists(output_dir):
         print "Output directory appears to exist! Cannot run if output " \
                 "directory already exists."
-        sys.exit(1)
+        do_exit(1)
 
     try:
         os.mkdir(output_dir)
     except:
         print "Error occurred while creating output directory, check " \
                 "permissions and try again."
-        sys.exit(1)
+        do_exit(1)
 
     for group in groups:
         try:
@@ -372,7 +377,7 @@ def prepare_working_dir(groups):
         except:
             print "Error occurred populating output directory structure, " + \
                     "check permissions and try again."
-            sys.exit(1)
+            do_exit(1)
 
     if working_dir_set == True:
         if not os.path.exists(working_dir):
@@ -381,7 +386,7 @@ def prepare_working_dir(groups):
             except:
                 print "Error occurred while creating working directory, check " \
                         "permissions and try again."
-                sys.exit(1)
+                do_exit(1)
 
         for group in groups:
             if not os.path.exists(working_dir + group):
@@ -390,7 +395,7 @@ def prepare_working_dir(groups):
                 except:
                     print "Error occurred populating working directory structure, " + \
                             "check permissions and try again."
-                    sys.exit(1)
+                    do_exit(1)
 
 def parse_cmd_line():
     """Parses the command line arguments using getopt."""
@@ -422,14 +427,14 @@ def parse_cmd_line():
     except getopt.GetoptError, err:
         print str(err)
         usage("")
-        sys.exit(1)
+        do_exit(1)
 
     for opt, arg in opts:
         if opt in ("-v", "--verbose"):
             verbose = True
         elif opt in ("-h", "--help"):
             usage("")
-            sys.exit(1)
+            do_exit(1)
         elif opt in ("-o", "--output-dir"):
             output_dir = arg + "/"
             output_dir_set = True
@@ -466,7 +471,7 @@ def parse_cmd_line():
 
     if output_file_set == True and working_dir_set == True:
         usage("Invalid configuration -- cannot specify -f and -w together, functionality mutually exclusive.")
-        sys.exit(1)
+        do_exit(1)
 
     if output_file_set == False and working_dir_set == False:
         # we must have one or the other, default to packaging
@@ -502,14 +507,14 @@ def parse_config_file():
         fp = open(config_file)
     except IOError:
         print "Error opening config file:", config_file
-        sys.exit(1)
+        do_exit(1)
 
     try:
         stuff_to_do = simplejson.load(fp, encoding=None, cls=None,
                                       object_hook=None)
     except:
         print "Error reading config file:", config_file
-        sys.exit(1)
+        do_exit(1)
 
 class Alarm(Exception):
     pass
@@ -668,7 +673,7 @@ class Command(object):
             if silent == False:
                 print "Unknown item type found in queue, panicking! (" + str(self.type) + ")"
 
-            sys.exit(1)
+            do_exit(1)
 
         self.timeout = self.args["timeout"]
 
@@ -979,6 +984,7 @@ def main():
     global default_mode
     global cleanup_output_set
 
+    alarmed = False
     x = 1
     script_started = time.time()        # for accounting purposes
 
@@ -997,11 +1003,11 @@ def main():
     tmpoutput = "/tmp/collector-"
 
     if output_dir_set == False:
-        output_dir = tmpoutput + hostname + "-" + machine_id + "." + \
+        output_dir = tmpoutput + license + "_" + hostname + "_" + \
                 str(time.strftime("%Y-%m-%d.%H-%M-%S%Z")) + "/"
 
     if output_file_set == True and default_mode == True:
-        output_file = tmpoutput + hostname + "-" + machine_id + "." + \
+        output_file = tmpoutput + license + "_" + hostname + "_" + \
                 str(time.strftime("%Y-%m-%d.%H-%M-%S%Z")) + ".tar.gz"
 
         if ftp_server_set == True:
@@ -1014,7 +1020,7 @@ def main():
                     print "failed."
                     print "Cancelling run, please fix network or use --no-ftp."
                 
-                sys.exit(1)
+                do_exit(1)
 
             if silent == False:
                 print "success."
@@ -1074,7 +1080,7 @@ def main():
         print "Beginning command run @ " + time.ctime(time.time()) + "."
 
         if verbose == False:
-            print "This may take several minutes, do not be alartmed by apparently long pauses."
+            print "This may take several minutes, do not be alarmed by long pauses."
 
     # initialize the worker threads - since the queue is populated they
     # will immediately begin eating through it
@@ -1090,7 +1096,7 @@ def main():
 
     # wait for all to complete, or timeout if 15 minutes elapsed
     signal.signal(signal.SIGALRM, alarm_handler)
-    signal.alarm(15*60) # 15 minutes
+    signal.alarm(20*60) # 15 minutes
 
     try:
         q.join()
@@ -1098,9 +1104,9 @@ def main():
     except Alarm:
         if silent == False:
             print "Script has run for maximum timeout and is still running."
-            print "Something has gone wrong!"
-
-        sys.exit(1)
+            print "Something has gone wrong! Attempting to complete anyway, but may fail"
+            print "due to outstanding processes."
+            alarmed = True
 
     # required to prevent odd print issues as the queue finishes up
     time.sleep(1)
@@ -1195,7 +1201,10 @@ def main():
         else:
             cleanup_output(output_file, False)
 
-    sys.exit(0)
+    if alarmed == True:
+        do_exit(1)
+    else:
+        do_exit(0)
         
 # pydoc related
 if __name__ == "__main__":
