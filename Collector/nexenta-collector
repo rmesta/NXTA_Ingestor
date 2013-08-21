@@ -63,7 +63,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.0.4"
+coll_ver = "1.0.5"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -165,25 +165,26 @@ def add_commas(x):
 
     return "%d%s" % (x, result)
 
-def upload_to_ftp(file_to_upload, fserver):
+def upload_to_ftp(file_to_upload, fserver, test_run):
     """Function used to upload final output tarball to an FTP server."""
 
     try:
         file_to_upload_fh = open(file_to_upload, 'r')
     except:
-        if verbose == True:
+        if verbose == True and test_run == False:
             print "FTP upload failed, couldn't open output file."
 
         return False
 
-    md5proc = process("md5sum " + file_to_upload + " > " + file_to_upload + ".md5")
-    md5procout = md5proc.communicate()
+    if test_run == False:
+        md5proc = process("md5sum " + file_to_upload + " > " + file_to_upload + ".md5")
+        md5procout = md5proc.communicate()
 
-    file_to_upload_md5_fh = open(file_to_upload + ".md5", 'r')
+        file_to_upload_md5_fh = open(file_to_upload + ".md5", 'r')
 
-    file_size = add_commas((os.path.getsize(file_to_upload) / 1024))
+        file_size = add_commas((os.path.getsize(file_to_upload) / 1024))
 
-    if silent == False:
+    if silent == False and test_run == False:
         print "FTP upload commencing, file size: " + file_size + " KB. Please wait."
 
     try:
@@ -194,20 +195,36 @@ def upload_to_ftp(file_to_upload, fserver):
         ftp.sendcmd("cwd caselogs")
 
         ftp.storbinary("STOR " + os.path.basename(file_to_upload), file_to_upload_fh)
-        ftp.storlines("STOR " + os.path.basename(file_to_upload + ".md5"), file_to_upload_md5_fh)
+
+        if test_run == False:
+            ftp.storlines("STOR " + os.path.basename(file_to_upload + ".md5"), file_to_upload_md5_fh)
 
         ftp.quit()
 
-        if silent == False:
+        if silent == False and test_run == False:
             print "File upload to FTP server " + ftp_server + " successfully."
 
         return True
 
     except:
-        if silent == False:
-            print "FTP upload failed."
+        if silent == False and test_run == False:
+                print "FTP upload failed."
 
         return False
+
+def test_ftp_upload(file_to_upload, fserver):
+    """Function used to prepare a file to run through upload_to_ftp as a test run."""
+
+    open(file_to_upload + ".test", 'a').close()
+
+    result = upload_to_ftp(file_to_upload + ".test", fserver, True)
+
+    try:
+        os.remove(file_to_upload + ".test")
+    except:
+        x = 1 # we don't really care
+
+    return result
 
 def cleanup_output(file_to_cleanup, has_md5):
     """Function used to clean up final output file(s)."""
@@ -987,6 +1004,21 @@ def main():
         output_file = tmpoutput + hostname + "-" + machine_id + "." + \
                 str(time.strftime("%Y-%m-%d.%H-%M-%S%Z")) + ".tar.gz"
 
+        if ftp_server_set == True:
+            
+            if silent == False:
+                print "FTP upload selected, testing FTP functionality & connectivity.. ",
+
+            if test_ftp_upload(output_file, ftp_server) == False:
+                if silent == False:
+                    print "failed."
+                    print "Cancelling run, please fix network or use --no-ftp."
+                
+                sys.exit(1)
+
+            if silent == False:
+                print "success."
+
     if silent == False:
         print "Collector starting @ " + time.ctime(script_started)
 
@@ -1155,7 +1187,7 @@ def main():
             print "Collection results file: " + output_file
 
     if ftp_server_set == True:
-        upload_to_ftp(output_file, ftp_server)
+        upload_to_ftp(output_file, ftp_server, False)
 
     if cleanup_output_set == True:
         if ftp_server_set == True:
