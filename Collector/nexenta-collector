@@ -63,7 +63,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.0.6"
+coll_ver = "1.0.7"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -82,10 +82,23 @@ stuff_to_do = False
 script_started = None
 script_ended = None
 no_touch = False
+nms_filename = "/tmp/collector-status"
+nms_set = False
 
 # added to handle potential requested exit changes later
 def do_exit(code):
     """Exit handler function."""
+
+    global nms_set
+    global nms_filename
+
+    if nms_set == True:
+    
+        if code == 0:
+            open(nms_filename + ".success", 'a').close()
+        else:
+            open(nms_filename + ".fail", 'a').close()
+
     sys.exit(code)
 
 def usage(input):
@@ -154,12 +167,14 @@ def usage(input):
     print "                     implicity says to attempt uploading ouput"
     print "                     file there. Only works in output-file mode."
     print ""
-    print "    --no-ftp:        Turns off FTP upload, leaves output file."
+    print "    --no-upload:     Turns off tarball upload, leaves output file."
     print ""
     print "    -v, --verbose:   Turns on verbose output to STDOUT. Not"
     print "                     recommended except for debugging purposes."
     print ""
     print "    -h, --help:      Produces this help screen."
+    print ""
+    print "    -V, --version:   Tells you the version of nexenta-collector."
 
 def add_commas(x):
     result = ""
@@ -169,6 +184,15 @@ def add_commas(x):
         result = ",%03d%s" % (r, result)
 
     return "%d%s" % (x, result)
+
+def show_version():
+    """Simple function to return the version of nexenta-collector in use."""
+
+    global coll_ver
+
+    print "nexenta-collector version: " + coll_ver
+
+    return True
 
 def upload_to_ftp(file_to_upload, fserver, test_run):
     """Function used to upload final output tarball to an FTP server."""
@@ -417,13 +441,15 @@ def parse_cmd_line():
     global ftp_server
     global ftp_server_set
     global cleanup_output_set
+    global nms_set
+    global nms_filename
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "vho:f:w:c:gst:p:nxt", \
+        opts, args = getopt.getopt(sys.argv[1:], "vho:f:w:c:gst:p:nxtVm", \
                                     ["verbose", "help", "output-dir=", "output-file=", \
                                     "working-dir=", "config=", "get-new-config", "silent", \
-                                    "num-threads=", "ftp=", "no-ftp", "no-destroy-output-dir", \
-                                    "no-touch"])
+                                    "num-threads=", "ftp=", "no-upload", "no-destroy-output-dir", \
+                                    "no-touch", "version", "nms="])
     except getopt.GetoptError, err:
         print str(err)
         usage("")
@@ -459,13 +485,19 @@ def parse_cmd_line():
             ftp_server_set = True
             ftp_server = arg
             cleanup_output_set = True
-        elif opt in ("-n", "--no-ftp"):
+        elif opt in ("-n", "--no-upload"):
             ftp_server_set = False
             cleanup_output_set = False
         elif opt in ("-x", "--no-destroy-output-dir"):
             destroy_output_dir = False
         elif opt in ("-t", "--no-touch"):
             no_touch == True
+        elif opt in ("-V", "--version"):
+            show_version()
+            do_exit(1)
+        elif opt in ("-m", "--nms"):
+            nms_set = True
+            nms_filename = arg
         else:
             assert False, "unhandled option"
 
@@ -934,7 +966,7 @@ def watcher():
         # there is no point to this printout if verbose is set, it'd just mangle everything up anyway
         # similarly in silent mode we shouldn't print
         if silent == False and verbose == False:
-            sys.stdout.write("\r %s [%s%s] %s\t" % (spinchar, "-" * (percent/2), " " * (progressbar_width - (percent/2)), str(percent)))
+            sys.stdout.write("\r %s [%s%s] %s\t%s/%s/%s " % (spinchar, "-" * (percent/2), " " * (progressbar_width - (percent/2)), str(percent), str(cmd_success), str(cmd_terminate), str((cmd_total - cmd_success - cmd_terminate))))
             sys.stdout.flush()
 
         time.sleep(0.5)
@@ -1018,7 +1050,7 @@ def main():
             if test_ftp_upload(output_file, ftp_server) == False:
                 if silent == False:
                     print "failed."
-                    print "Cancelling run, please fix network or use --no-ftp."
+                    print "Cancelling run, please fix network or use --no-upload."
                 
                 do_exit(1)
 
@@ -1026,7 +1058,7 @@ def main():
                 print "success."
 
     if silent == False:
-        print "Collector starting @ " + time.ctime(script_started)
+        print "Collector starting @ " + time.ctime(script_started) + "."
 
     if silent == False:
         print "Creating collection queue..",
@@ -1068,7 +1100,9 @@ def main():
 
     if silent == False:
         print "done. " + str(q.qsize()) + " commands in queue."
-        print "Output directory: " + output_dir
+
+        if default_mode == False:
+            print "Output directory: " + output_dir
 
         if working_dir_set == True:
             print "Working directory: " + working_dir
@@ -1170,7 +1204,9 @@ def main():
 
     if silent == False:
         print "done."
-        print "Cleaning up output area (" + output_dir + ")..",
+
+        if default_mode == False:
+            print "Cleaning up output area (" + output_dir + ")..",
 
     # removes the output directory (if you were to put the output
     # file in the output directory this'd be bad)
@@ -1178,7 +1214,7 @@ def main():
         rmproc = process("rm -rf " + output_dir)
         rmproc.communicate()
 
-    if silent == False:
+    if silent == False and default_mode == False:
         print "done."
 
     # reset script_ended for after tarring for print output if requested
@@ -1190,7 +1226,7 @@ def main():
                 str(round((script_ended - script_started),2)) + \
                 " seconds."
         if working_dir_set == False:
-            print "Collection results file: " + output_file
+            print "Result file: " + output_file
 
     if ftp_server_set == True:
         upload_to_ftp(output_file, ftp_server, False)
