@@ -19,7 +19,7 @@ PyDoc-generated man page if you are intending to modify."""
 # import necessary modules - none of these can be skipped
 import getopt
 import sys
-import os
+import os, stat
 import signal
 import simplejson
 import subprocess
@@ -31,6 +31,10 @@ import filecmp
 import socket
 from ftplib import FTP
 from threading import Thread
+import urllib
+import urllib2
+import mimetools, mimetypes
+from cStringIO import StringIO
 
 try:
     from Queue import Queue
@@ -63,7 +67,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.0.7"
+coll_ver = "1.0.9"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -72,6 +76,9 @@ cmd_init = 0
 cmd_run = 0
 cmd_success = 0
 cmd_terminate = 0
+http_server = "https://ftp.nexenta.com"
+http_server_set = True
+http_url_add = "/nexenta-collector-uploads.php"
 ftp_server = "ftp.nexenta.com"
 ftp_server_set = True 
 output_dir_set = False
@@ -84,6 +91,8 @@ script_ended = None
 no_touch = False
 nms_filename = "/tmp/collector-status"
 nms_set = False
+do_progressbar = True
+doseq = 1
 
 # added to handle potential requested exit changes later
 def do_exit(code):
@@ -194,14 +203,79 @@ def show_version():
 
     return True
 
-def upload_to_ftp(file_to_upload, fserver, test_run):
+class Callable:
+    def __init__(self, anycallable):
+        self.__call__ = anycallable
+
+class MultipartPostHandler(urllib2.BaseHandler):
+    handler_order = urllib2.HTTPHandler.handler_order - 10 # needs to run first
+
+    def http_request(self, request):
+        data = request.get_data()
+        if data is not None and type(data) != str:
+            v_files = []
+            v_vars = []
+            try:
+                 for(key, value) in data.items():
+                     if type(value) == file:
+                         v_files.append((key, value))
+                     else:
+                         v_vars.append((key, value))
+            except TypeError:
+                systype, value, traceback = sys.exc_info()
+                raise TypeError, "not a valid non-string sequence or mapping object", traceback
+
+            if len(v_files) == 0:
+                data = urllib.urlencode(v_vars, doseq)
+            else:
+                boundary, data = self.multipart_encode(v_vars, v_files)
+
+                contenttype = 'multipart/form-data; boundary=%s' % boundary
+                if(request.has_header('Content-Type')
+                   and request.get_header('Content-Type').find('multipart/form-data') != 0):
+                    print "Replacing %s with %s" % (request.get_header('content-type'), 'multipart/form-data')
+                request.add_unredirected_header('Content-Type', contenttype)
+
+            request.add_data(data)
+        
+        return request
+
+    def multipart_encode(vars, files, boundary = None, buf = None):
+        if boundary is None:
+            boundary = mimetools.choose_boundary()
+        if buf is None:
+            buf = StringIO()
+        for(key, value) in vars:
+            buf.write('--%s\r\n' % boundary)
+            buf.write('Content-Disposition: form-data; name="%s"' % key)
+            buf.write('\r\n\r\n' + value + '\r\n')
+        for(key, fd) in files:
+            file_size = os.fstat(fd.fileno())[stat.ST_SIZE]
+            filename = fd.name.split('/')[-1]
+            contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+            buf.write('--%s\r\n' % boundary)
+            buf.write('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (key, filename))
+            buf.write('Content-Type: %s\r\n' % contenttype)
+            # buffer += 'Content-Length: %s\r\n' % file_size
+            fd.seek(0)
+            buf.write('\r\n' + fd.read() + '\r\n')
+        buf.write('--' + boundary + '--\r\n\r\n')
+        buf = buf.getvalue()
+        return boundary, buf
+    multipart_encode = Callable(multipart_encode)
+
+    https_request = http_request
+
+def upload_to_server(file_to_upload, fserver, test_run, protocol):
     """Function used to upload final output tarball to an FTP server."""
+
+    global http_url_add
 
     try:
         file_to_upload_fh = open(file_to_upload, 'r')
     except:
         if verbose == True and test_run == False:
-            print "FTP upload failed, couldn't open output file."
+            print protocol.upper() + " upload failed, couldn't open output file."
 
         return False
 
@@ -214,39 +288,81 @@ def upload_to_ftp(file_to_upload, fserver, test_run):
         file_size = add_commas((os.path.getsize(file_to_upload) / 1024))
 
     if silent == False and test_run == False:
-        print "FTP upload commencing, file size: " + file_size + " KB. Please wait."
+        print protocol.upper() + " upload commencing, file size: " + file_size + " KB. Please wait."
 
-    try:
-        ftp = FTP(fserver)
-        ftp.login()
+    if protocol == 'ftp':
+        try:
+            ftp = FTP(fserver)
+            ftp.login()
 
-        ftp.sendcmd("cwd upload")
-        ftp.sendcmd("cwd caselogs")
+            ftp.sendcmd("cwd upload")
+            ftp.sendcmd("cwd caselogs")
 
-        ftp.storbinary("STOR " + os.path.basename(file_to_upload), file_to_upload_fh)
+            ftp.storbinary("STOR " + os.path.basename(file_to_upload), file_to_upload_fh)
 
-        if test_run == False:
-            ftp.storlines("STOR " + os.path.basename(file_to_upload + ".md5"), file_to_upload_md5_fh)
+            if test_run == False:
+                ftp.storlines("STOR " + os.path.basename(file_to_upload + ".md5"), file_to_upload_md5_fh)
 
-        ftp.quit()
+            ftp.quit()
 
-        if silent == False and test_run == False:
-            print "File upload to FTP server " + ftp_server + " successfully."
+            if silent == False and test_run == False:
+                print "File upload to FTP server " + fserver + " successful."
 
-        return True
+            return True
 
-    except:
-        if silent == False and test_run == False:
-                print "FTP upload failed."
+        except:
+            if silent == False and test_run == False:
+                    print "FTP upload failed."
+
+            return False
+    elif protocol == 'http':
+        try:
+            opener = urllib2.build_opener(MultipartPostHandler)
+            params = { 'ss' : '0', 'doctype' : 'Inline', 'uploaded_file' : file_to_upload_fh }
+            result = opener.open(fserver + http_url_add, params).read()
+
+            if result == 'success':
+            
+                if test_run == False:
+                    opener2 = urllib2.build_opener(MultipartPostHandler)
+                    params2 = { 'ss' : '0', 'doctype' : 'Inline', 'uploaded_file' : file_to_upload_md5_fh }
+                    result2 = opener2.open(fserver + http_url_add, params2).read()
+
+                    if result2 == 'success':
+                        if silent == False:
+                            print "File upload to web server " + fserver + " successful."
+
+                        return True
+                    else:
+                        if silent == False:
+                            print "Web upload failed (2)."
+
+                        return False
+                else:
+                    return True
+
+            else:
+                if silent == False and test_run == False:
+                    print "Web upload failed."
+
+                return False
+        except:
+            if silent == False and test_run == False:
+                print "Web upload failed."
+
+            return False
+    else:
+        if silent == False:
+            print "Unknown upload protocol."
 
         return False
 
-def test_ftp_upload(file_to_upload, fserver):
-    """Function used to prepare a file to run through upload_to_ftp as a test run."""
+def test_server_upload(file_to_upload, fserver, protocol):
+    """Function used to prepare a file to run through upload_to_server as a test run."""
 
     open(file_to_upload + ".test", 'a').close()
 
-    result = upload_to_ftp(file_to_upload + ".test", fserver, True)
+    result = upload_to_server(file_to_upload + ".test", fserver, True, protocol)
 
     try:
         os.remove(file_to_upload + ".test")
@@ -443,13 +559,16 @@ def parse_cmd_line():
     global cleanup_output_set
     global nms_set
     global nms_filename
+    global do_progressbar
+    global http_server
+    global http_server_set
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "vho:f:w:c:gst:p:nxtVm", \
                                     ["verbose", "help", "output-dir=", "output-file=", \
                                     "working-dir=", "config=", "get-new-config", "silent", \
                                     "num-threads=", "ftp=", "no-upload", "no-destroy-output-dir", \
-                                    "no-touch", "version", "nms="])
+                                    "no-touch", "version", "nms=", "no-progress", "http="])
     except getopt.GetoptError, err:
         print str(err)
         usage("")
@@ -487,6 +606,7 @@ def parse_cmd_line():
             cleanup_output_set = True
         elif opt in ("-n", "--no-upload"):
             ftp_server_set = False
+            http_server_set = False
             cleanup_output_set = False
         elif opt in ("-x", "--no-destroy-output-dir"):
             destroy_output_dir = False
@@ -498,6 +618,12 @@ def parse_cmd_line():
         elif opt in ("-m", "--nms"):
             nms_set = True
             nms_filename = arg
+        elif opt in ("--no-progress"):
+            do_progressbar = False
+        elif opt in ("--http"):
+            http_server_set = True
+            http_server = arg
+            cleanup_output_set = True
         else:
             assert False, "unhandled option"
 
@@ -948,6 +1074,7 @@ def watcher():
     global percent
     global silent
     global verbose
+    global do_progressbar
 
     while percent < 100:
 
@@ -965,13 +1092,13 @@ def watcher():
 
         # there is no point to this printout if verbose is set, it'd just mangle everything up anyway
         # similarly in silent mode we shouldn't print
-        if silent == False and verbose == False:
+        if silent == False and verbose == False and do_progressbar == True:
             sys.stdout.write("\r %s [%s%s] %s\t%s/%s/%s " % (spinchar, "-" * (percent/2), " " * (progressbar_width - (percent/2)), str(percent), str(cmd_success), str(cmd_terminate), str((cmd_total - cmd_success - cmd_terminate))))
             sys.stdout.flush()
 
         time.sleep(0.5)
 
-    if silent == False and verbose == False:
+    if silent == False and verbose == False and do_progressbar == True:
         sys.stdout.write("\r %s [%s] %s\n" % (" ", "-" * progressbar_width, "100"))
 
     return True
@@ -1015,6 +1142,10 @@ def main():
     global cmd_terminate
     global default_mode
     global cleanup_output_set
+    global ftp_server_set
+    global http_server_set
+    global ftp_server
+    global http_server
 
     alarmed = False
     x = 1
@@ -1038,16 +1169,39 @@ def main():
         output_dir = tmpoutput + license + "_" + hostname + "_" + \
                 str(time.strftime("%Y-%m-%d.%H-%M-%S%Z")) + "/"
 
+    http_check = False # dirty, should fix this logic below
+
     if output_file_set == True and default_mode == True:
         output_file = tmpoutput + license + "_" + hostname + "_" + \
                 str(time.strftime("%Y-%m-%d.%H-%M-%S%Z")) + ".tar.gz"
 
-        if ftp_server_set == True:
+        if http_server_set == True:
+            http_check = True
+            
+            if silent == False:
+                print "Web upload selected, testing HTTP(s) functionality & connectivity.. ",
+
+            if test_server_upload(output_file, http_server, 'http') == False:
+                http_check = False
+
+                if silent == False:
+                    print "failed."
+
+                    if ftp_server_set == False:
+                        print "Cancelling run, please fix network or use --no-upload."
+
+                        do_exit(1)
+
+            else:
+                if silent == False:
+                    print "success."
+
+        if ftp_server_set == True and http_check == False:
             
             if silent == False:
                 print "FTP upload selected, testing FTP functionality & connectivity.. ",
 
-            if test_ftp_upload(output_file, ftp_server) == False:
+            if test_server_upload(output_file, ftp_server, 'ftp') == False:
                 if silent == False:
                     print "failed."
                     print "Cancelling run, please fix network or use --no-upload."
@@ -1228,8 +1382,11 @@ def main():
         if working_dir_set == False:
             print "Result file: " + output_file
 
-    if ftp_server_set == True:
-        upload_to_ftp(output_file, ftp_server, False)
+    if http_server_set == True and http_check == True:
+        upload_to_server(output_file, http_server, False, 'http')
+
+    if ftp_server_set == True and http_check == False:
+        upload_to_server(output_file, ftp_server, False, 'ftp')
 
     if cleanup_output_set == True:
         if ftp_server_set == True:
