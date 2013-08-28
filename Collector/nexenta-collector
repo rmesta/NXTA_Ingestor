@@ -67,7 +67,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.0.9"
+coll_ver = "1.0.10"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -790,7 +790,7 @@ class Command(object):
                     output_dir + self.group + "/"
 
             if not self.args.has_key("timeout"):
-                self.args["timeout"] = 300 
+                self.args["timeout"] = float(300)
 
         # dir (directory) requires file-label, always assumes gzip
         elif self.type == "tar":
@@ -802,7 +802,7 @@ class Command(object):
 
             # as it is being treated as a command, it needs a timeout
             if not self.args.has_key("timeout"):
-                self.args["timeout"] = 300
+                self.args["timeout"] = float(300)
 
             # to hit the proper logic tree, tars must always have gzip true
             if self.args.has_key("gzip") and self.args["gzip"] == False:
@@ -814,7 +814,7 @@ class Command(object):
             self.cmd_line = str(self.cmd)
 
             if not self.args.has_key("timeout"):
-                self.args["timeout"] = 120 
+                self.args["timeout"] = float(120)
 
             # commands need a file-label - it's important in this code
             # and necessary; if someone forgot it in the conf file,
@@ -833,7 +833,7 @@ class Command(object):
 
             do_exit(1)
 
-        self.timeout = self.args["timeout"]
+        self.timeout = float(self.args["timeout"])
 
     def run(self, timeout):
         """Called by worker thread to begin actual command run.
@@ -958,7 +958,10 @@ class Command(object):
         # by looking here -- and potentially improving this to do another
         # timeout wait followed by a global panic because we can't seem
         # to get rid of our "sub"-thread
-        worker_thread.join()
+        # - we give it 10 seconds to try to os kill, then just continue
+        # so we can free up a thread to go do something else if we're
+        # hung
+        worker_thread.join(float(10))
 
         # accounting details
         if self.terminated == True:
@@ -1051,7 +1054,7 @@ def worker():
         # loop again (which should, in theory, hit q.empty() = True and
         # we'll be done
         try:
-            item = q.get(block=False, timeout=1)
+            item = q.get_nowait()
         except:
             donothing = True
 
@@ -1075,6 +1078,7 @@ def watcher():
     global silent
     global verbose
     global do_progressbar
+    global script_started
 
     while percent < 100:
 
@@ -1093,7 +1097,16 @@ def watcher():
         # there is no point to this printout if verbose is set, it'd just mangle everything up anyway
         # similarly in silent mode we shouldn't print
         if silent == False and verbose == False and do_progressbar == True:
-            sys.stdout.write("\r %s [%s%s] %s\t%s/%s/%s " % (spinchar, "-" * (percent/2), " " * (progressbar_width - (percent/2)), str(percent), str(cmd_success), str(cmd_terminate), str((cmd_total - cmd_success - cmd_terminate))))
+            tmptime = time.time()
+            tmp_elapsed = round(tmptime - script_started, 1)
+
+            if tmp_elapsed > 59:
+                tmp_elapsed_increment = "m"
+                tmp_elapsed = round(tmp_elapsed / 60, 1)
+            else:
+                tmp_elapsed_increment = "s"
+
+            sys.stdout.write("\r %s [%s%s] %s%s\t%s/%s/%s  %s%s " % (spinchar, "-" * (percent/2), " " * (progressbar_width - (percent/2)), str(percent), "%", str(cmd_success), str(cmd_terminate), str((cmd_total - cmd_success - cmd_terminate)), str(tmp_elapsed), str(tmp_elapsed_increment)))
             sys.stdout.flush()
 
         time.sleep(0.5)
@@ -1269,6 +1282,8 @@ def main():
 
         if verbose == False:
             print "This may take several minutes, do not be alarmed by long pauses."
+            #        / [------------------------                          ] 49      67/16/86  5.8m
+            print "Status (Progress bar - Completed/Timed Out/Waiting - Elapsed Time):"
 
     # initialize the worker threads - since the queue is populated they
     # will immediately begin eating through it
@@ -1282,19 +1297,19 @@ def main():
     t = Thread(target=watcher)
     t.start()
 
-    # wait for all to complete, or timeout if 15 minutes elapsed
-    signal.signal(signal.SIGALRM, alarm_handler)
-    signal.alarm(20*60) # 15 minutes
+    # wait for all to complete, or timeout if 20 minutes elapsed
+    #signal.signal(signal.SIGALRM, alarm_handler)
+    #signal.alarm(20*60) # 15 minutes
 
     try:
         q.join()
-        signal.alarm(0)
+    #    signal.alarm(0)
     except Alarm:
-        if silent == False:
-            print "Script has run for maximum timeout and is still running."
-            print "Something has gone wrong! Attempting to complete anyway, but may fail"
-            print "due to outstanding processes."
-            alarmed = True
+    #    if silent == False:
+    #        print "Script has run for maximum timeout and is still running."
+    #        print "Something has gone wrong! Attempting to complete anyway, but may fail"
+    #        print "due to outstanding processes."
+        alarmed = True
 
     # required to prevent odd print issues as the queue finishes up
     time.sleep(1)
