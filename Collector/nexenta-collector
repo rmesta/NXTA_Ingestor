@@ -1201,7 +1201,7 @@ def main():
 
     if output_file_set == True and default_mode == True:
         output_file = tmpoutput + license + "_" + hostname + "_" + \
-                str(time.strftime("%Y-%m-%d.%H-%M-%S%Z")) + str(random.randint(1000, 9999)) + ".tar.gz"
+                str(time.strftime("%Y-%m-%d.%H-%M-%S%Z")) + "." + str(random.randint(1000, 9999)) + ".tar.gz"
 
         if http_server_set == True:
             http_check = True
