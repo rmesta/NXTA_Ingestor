@@ -9,7 +9,7 @@ $upload_dir = '/mnt/ftp-incoming/upload/caselogs/';
 $upload_file = $upload_dir . basename($_FILES['uploaded_file']['name']);
 
 if (strpos(basename($_FILES['uploaded_file']['name']), "collector") !== false) {
-    if (strpos(basename($_FILES['uploaded_file']['name']), ".test") !== false) {
+    if (strpos(basename($_FILES['uploaded_file']['name']), ".test") == false) {
         if (move_uploaded_file($_FILES['uploaded_file']['tmp_name'], $upload_file)) {
             echo 'success';
 
