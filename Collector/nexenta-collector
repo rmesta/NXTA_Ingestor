@@ -35,6 +35,7 @@ import urllib
 import urllib2
 import mimetools, mimetypes
 from cStringIO import StringIO
+import random
 
 try:
     from Queue import Queue
@@ -67,7 +68,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.0.12"
+coll_ver = "1.0.13"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -1200,7 +1201,7 @@ def main():
 
     if output_file_set == True and default_mode == True:
         output_file = tmpoutput + license + "_" + hostname + "_" + \
-                str(time.strftime("%Y-%m-%d.%H-%M-%S%Z")) + ".tar.gz"
+                str(time.strftime("%Y-%m-%d.%H-%M-%S%Z")) + str(random.randint(1000, 9999)) + ".tar.gz"
 
         if http_server_set == True:
             http_check = True
