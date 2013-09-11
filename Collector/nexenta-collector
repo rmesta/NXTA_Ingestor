@@ -67,7 +67,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.0.10"
+coll_ver = "1.0.12"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -537,6 +537,15 @@ def prepare_working_dir(groups):
                             "check permissions and try again."
                     do_exit(1)
 
+def check_credentials():
+    """Checks the effective user id that Collector is running as."""
+
+    if os.geteuid() != 0:
+        print "Collector can only be run as the root user."
+        do_exit(1)
+    else:
+        return True
+
 def parse_cmd_line():
     """Parses the command line arguments using getopt."""
 
@@ -950,7 +959,10 @@ class Command(object):
             self.terminated = True
             self.terminated_at = time.time()
 
-            os.kill(self.process.pid, signal.SIGKILL)
+            try:
+                os.kill(self.process.pid, signal.SIGKILL)
+            except:
+                junk=1 # catches if we've lost our pid/process, apparently
 
         # we just potentially tried to os.kill the worker thread - let's
         # rejoin it again until it's gone; so far this has never caused
@@ -1109,10 +1121,10 @@ def watcher():
             sys.stdout.write("\r %s [%s%s] %s%s\t%s/%s/%s  %s%s " % (spinchar, "-" * (percent/2), " " * (progressbar_width - (percent/2)), str(percent), "%", str(cmd_success), str(cmd_terminate), str((cmd_total - cmd_success - cmd_terminate)), str(tmp_elapsed), str(tmp_elapsed_increment)))
             sys.stdout.flush()
 
-        time.sleep(0.5)
+        time.sleep(0.7)
 
     if silent == False and verbose == False and do_progressbar == True:
-        sys.stdout.write("\r %s [%s] %s\n" % (" ", "-" * progressbar_width, "100"))
+        sys.stdout.write("\r %s [%s] %s" % (" ", "-" * progressbar_width, "100"))
 
     return True
 
@@ -1163,6 +1175,8 @@ def main():
     alarmed = False
     x = 1
     script_started = time.time()        # for accounting purposes
+
+    check_credentials() # for now, Collector can only be run as root
 
     parse_cmd_line()    # does what it sounds like
 
@@ -1312,7 +1326,7 @@ def main():
         alarmed = True
 
     # required to prevent odd print issues as the queue finishes up
-    time.sleep(1)
+    time.sleep(3)
 
     if silent == False:
         if verbose == False:
