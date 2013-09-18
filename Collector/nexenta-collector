@@ -68,7 +68,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.0.13"
+coll_ver = "1.0.14"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -93,6 +93,7 @@ no_touch = False
 nms_filename = "/tmp/collector-status"
 nms_set = False
 do_progressbar = True
+terminated_list = []
 doseq = 1
 
 # added to handle potential requested exit changes later
@@ -101,11 +102,16 @@ def do_exit(code):
 
     global nms_set
     global nms_filename
+    global output_file
 
     if nms_set == True:
     
         if code == 0:
-            open(nms_filename + ".success", 'a').close()
+            succ_f = open(nms_filename + ".success", 'w')
+
+            succ_f.write("" + output_file + "")
+
+            succ_f.close()
         else:
             open(nms_filename + ".fail", 'a').close()
 
@@ -861,6 +867,7 @@ class Command(object):
 
         global cmd_success
         global cmd_terminate
+        global terminated_list
 
         def target():
             """Function invoked by run() as a thread."""
@@ -989,6 +996,8 @@ class Command(object):
                 else:
                     self.out_f.close()
                     self.err_f.close()
+
+                terminated_list.append(self.args["file-label"])
         else:
             cmd_success = cmd_success + 1
             self.ended_at = time.time()
@@ -1360,6 +1369,12 @@ def main():
         ofile = ofile + "Appliance version: " + app_ver + "\n"
         ofile = ofile + "License key: " + license + "\n"
         ofile = ofile + "Hostname: " + hostname + " (" + fqdn + ")\n"
+
+        if len(terminated_list) > 0:
+            ofile = ofile + "Terminated List:\n"
+
+            for entry in terminated_list:
+                ofile = ofile + " - " + entry + "\n"
     
         # add the size of the working directory pre-tar to the stats file
         duproc = process("du -sh " + output_dir + " | cut -f1")
