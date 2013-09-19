@@ -68,7 +68,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.0.14"
+coll_ver = "1.1.0"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -323,6 +323,17 @@ def upload_to_server(file_to_upload, fserver, test_run, protocol):
 
             return False
     elif protocol == 'http':
+        
+        # it is currently necessary to force http (not https) if a proxy has been
+        # specified - this is a limitation of urllib2 in python versions on NexentaStor
+        # so if we see an http or https_proxy environment variable, we change to
+        # http, and also set https proxy to http proxy if only https proxy was set
+        if os.getenv('http_proxy') or os.getenv('https_proxy'):
+            if fserver[0:5] == 'https':
+                fserver = "http:" + fserver.split(':', 1)[1]
+
+            if os.getenv('https_proxy') and not os.getenv('http_proxy'):
+                os.environ['http_proxy'] = os.getenv('https_proxy')
         try:
             opener = urllib2.build_opener(MultipartPostHandler)
             params = { 'ss' : '0', 'doctype' : 'Inline', 'uploaded_file' : file_to_upload_fh }
