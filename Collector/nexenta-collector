@@ -68,7 +68,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.1.0"
+coll_ver = "1.1.1"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -1192,6 +1192,8 @@ def main():
     global http_server_set
     global ftp_server
     global http_server
+    global nms_set
+    global nms_filename
 
     alarmed = False
     x = 1
@@ -1261,6 +1263,11 @@ def main():
 
     if silent == False:
         print "Collector starting @ " + time.ctime(script_started) + "."
+
+    if nms_set == True:
+        work_f = open(nms_filename + ".working", 'w')
+        work_f.write("" + output_file + "")
+        work_f.close()
 
     if silent == False:
         print "Creating collection queue..",
@@ -1466,7 +1473,7 @@ __credits__         = ["Andrew Galloway", "Sam Zaydel", "Craig Morgan"]
 __license__         = "undefined"
 __version__         = "$Revision: " + coll_ver + " $"
 __created_date__    = "$Date: 2011-05-31 13:32:01 +0600 (Tue, 31 May 2011) $"
-__last_updated__    = "$Date: 2013-08-15 02:23:00 +0700 (Thu, 15 Aug 2013) $"
+__last_updated__    = "$Date: 2013-09-19 23:15:00 +0700 (Thu, 19 Sep 2013) $"
 __maintainer__      = "Andrew Galloway"
 __email__           = "andrew.galloway@nexenta.com"
 __status__          = "Release"
