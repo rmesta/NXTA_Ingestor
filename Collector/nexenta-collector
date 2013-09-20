@@ -109,7 +109,7 @@ def do_exit(code):
         if code == 0:
             succ_f = open(nms_filename + ".success", 'w')
 
-            succ_f.write("" + output_file + "")
+            succ_f.write("" + os.path.basename(output_file) + "")
 
             succ_f.close()
         else:
@@ -1266,7 +1266,7 @@ def main():
 
     if nms_set == True:
         work_f = open(nms_filename + ".working", 'w')
-        work_f.write("" + output_file + "")
+        work_f.write("" + os.path.basename(output_file) + "")
         work_f.close()
 
     if silent == False:
