@@ -1,6 +1,7 @@
 <?php
 # simple script to take any uploaded form files and put them in caselogs
-# no validation is done at this time (can't think of any that is needed)
+# no validation is done at this time (can't think of any that is needed), other
+# than that it doesn't bother to save '.test' files
 #
 # for this to work, permissions are important on upload_dir and what user apache is running as!
 # for questions email andrew.galloway@nexenta.com

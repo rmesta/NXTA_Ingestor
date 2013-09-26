@@ -68,7 +68,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.1.1"
+coll_ver = "1.1.2"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -1049,12 +1049,27 @@ class Command(object):
                 else:
                     ofile = ofile + "Command return code: unavailable\n"
 
-                ofile = ofile + "Started at: " + \
-                        time.ctime(self.started_at) + "\n"
-                ofile = ofile + "Ended at: " + \
-                        time.ctime(self.ended_at) + "\n"
-                ofile = ofile + "Elapsed (s): " + \
-                        str(self.ended_at - self.started_at) + "\n"
+                # try /excepts are required for unknown commands that somehow get
+                # this far without a filled out self.started_at or self.ended_at
+                # TODO - track down how this could happen later
+                ofile = ofile + "Started at: "
+                try:
+                    ofile = ofile + time.ctime(self.started_at) + "\n"
+                except:
+                    ofile = ofile + "unknown!\n"
+
+                ofile = ofile + "Ended at: "
+                try:
+                    ofile = ofile + time.ctime(self.ended_at) + "\n"
+                except:
+                    ofile = ofile + "unknown!\n"
+
+                ofile = ofile + "Elapsed (s): "
+                try:
+                    ofile = ofile + str(self.ended_at - self.started_at) + "\n"
+                except:
+                    ofile = ofile + "unknown!\n"
+
                 ofile = ofile + "License Key: " + license + " [" + app_ver + "]\n"
 
                 f.write(ofile)
