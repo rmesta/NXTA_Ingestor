@@ -42,8 +42,9 @@ ingest() {
             echo "`date`|${SCRIPT}|started" > $1/.ingestor_activity_log
 
             # ingestion scripts get 1 cmd line arg sent to them - the directory
-            # of the bundle they're being run against
-            ./${SCRIPT} "$1"
+            # of the bundle they're being run against, we also pipe all
+            # stdout and stderr to a file, just for completion sake
+            ./${SCRIPT} "$1" > $1/.ingestor_logs/${SCRIPT}.log 2>&1
 
             echo "`date`|${SCRIPT}|done|$?" > $1/.ingestor_activity_log
         done
@@ -61,9 +62,13 @@ if [ -z "$1" ]; then
         # is this an untouched bundle - if so, do stuff, otherwise just ignore it as finished/started already
         if [ -e ${UNTAR_DIR}/.just_ingested ]; then
             mv ${UNTAR_DIR}/.just_ingested ${UNTAR_DIR}/.initial_ingested_at
-            echo "`date`" > ${UNTAR_DIR}/.ingestor_running
+            mkdir ${UNTAR_DIR}/.ingestor_logs
+
+            echo "`date`" > ${UNTAR_DIR}/.ingestor_started
 
             ingest ${UNTAR_DIR}
+
+            echo "`date`" > ${UNTAR_DIR}/.ingestor_finished
         fi
     done
 else
@@ -71,9 +76,13 @@ else
     if [ -d "$1" ]; then
         if [ -e $1/.just_ingested ]; then
             mv $1/.just_ingested $1/.initial_ingested_at
-            echo "`date`" > $1/.ingestor_running
+            mkdir $1/.ingestor_logs
+
+            echo "`date`" > $1/.ingestor_started
     
             ingest $1
+
+            echo "`date`" > $1/.ingestor_finished
         else
             # if we're here, there's a directory, but no .just_ingested
             if [ -z "$2" ]; then
