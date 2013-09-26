@@ -74,3 +74,5 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5`; do
         fi
     fi
 done
+
+rm -f ${LOCK_FILE}
