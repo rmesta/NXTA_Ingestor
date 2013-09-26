@@ -1,0 +1,9 @@
+Ingestion scripts will be run with a single command line argument passed in, namely the directory to work in. They are executed using ./<script-name> <directory>, so as long as they properly set themselves up, they can be bash scripts, python scripts, ruby scripts, perl scripts, or C binaries.
+
+The filename matters - ingestor is going to run scripts in numerical order, 1 to 10. Anything that wants to run needs to have a filename that starts with A#, where # = 1 to 10. Any other start to the filename will not be run. The usefulness of this numerical ordering is in the ability to chain. If your script does not rely on any other script having been run first and outputted something that it then works on, then you can safely set your script to A1. The only reason to increment from A1 to A2 or higher is that your script relies on something. I personally suggest when in doubt, set it to A2 or A3, just in case.
+
+If your script is basing itself in whole or in part on something that only exists after another script runs, the only requirement is that you be sure your script has a higher number than all scripts that must run before it. Conversely, if your script is doing things that other scripts need, it needs to have a lower number than those scripts.
+
+If you have common functions that could be re-usable by you or others, please put them in a global 'functions.xx' file (were .xx = extension for programming language of choice) and include it in your script, so we're not all re-inventing the wheel.
+
+- Andrew

@@ -11,7 +11,7 @@ LOG_FILE=/var/log/ingestor.log
 INGESTION_SCRIPTS_DIR=./ingestion-scripts
 INITIAL_LOG_FILE=/var/log/initial-ingestor.log
 ITER_START=1
-ITER_END=99
+ITER_END=10
 
 # check if we're already running
 if [ -e $LOCK_FILE ]; then
