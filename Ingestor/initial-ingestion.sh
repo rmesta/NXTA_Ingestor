@@ -22,10 +22,18 @@ log () {
 
 # verify prior run isn't still ongoing, if lock file exists just die silently
 if [ -e $LOCK_FILE ]; then
-    log "unable to run, lock file exists"
-    exit 1
+
+    # check if the pid still exists for the existing lock file
+    if ps -p `cat ${LOCK_FILE}` > /dev/null
+    then
+        log "unable to run, lock file exists and pid active"
+        exit 1
+    else
+        log "lock file still existed, but no active pid, choosing to run"
+        echo -n "$$" > $LOCK_FILE
+    fi
 else
-    echo "`date`" > $LOCK_FILE
+    echo -n "$$" > $LOCK_FILE
 fi
 
 # get list of potentially finished collector uploads in upload directory
