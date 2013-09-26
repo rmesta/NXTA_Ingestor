@@ -70,7 +70,7 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5`; do
             # success!
             # create a file that indicates this is a fresh untar
             echo "`date`" > ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}/.just_ingested
-            log "untarred ${TAR_FILE} in ${WORKING_DIR}/${TAR_DATE}/"
+            log "untarred ${TAR_FILE}|${WORKING_DIR}/${TAR_DATE}/"
         fi
     fi
 done
