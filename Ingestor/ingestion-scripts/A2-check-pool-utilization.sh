@@ -17,15 +17,19 @@ SCRIPT_NAME="A2-check-pool-utilization.sh"
 # exit 1 if not
 main () {
     BUNDLE_DIR=$1 # use BUNDLE_DIR inside here, don't use $1, just for sanity
+    OLDIFS=$IFS
+    IFS=$'\n'
 
     for LINE in `cat ${BUNDLE_DIR}/zfs/zpool-list-o-all.out | grep -v '^NAME'`; do
         ZPOOL=`echo ${LINE} | awk '{print $1}'`
         UTIL=`echo ${LINE} | awk '{print $3}' | sed 's/%//g'`
 
         if [ $UTIL -gt 74 ]; then
-            echo "$zpool is ${UTIL}% utilized." > ${BUNDLE_DIR}/ingestor/warnings/check-pool-utilization
+            echo "${ZPOOL} is ${UTIL}% utilized." > ${BUNDLE_DIR}/ingestor/warnings/check-pool-utilization
         fi
     done
+
+    IFS=$OLDIFS
 }
 
 # this runs first, and does sanity checking before invoking main() function
