@@ -7,7 +7,7 @@
 
 # colors, if you should want to use. To use, simply call the variables you want, and be SURE to call $C_RESET when
 # you reach the end of what you want to colorize. Here's an example line that would work:
-# echo -e "Testing color. ${C_UND}${C_BOLD}${C_BLUE}Blue${C_RESET}. ${C_RED}Red${C_RESET}."
+# echo -e "Testing color. ${C_UND}${C_BOLD}${C_BLUE}Blue${C_RESET}. ${C_RED}Red${C_RESET}." > file
 C_UND=$(tput sgr 0 1)
 C_RESET=$(tput sgr0)
 C_BOLD=$(tput bold)
