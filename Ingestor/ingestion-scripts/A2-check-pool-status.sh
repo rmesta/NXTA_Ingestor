@@ -27,19 +27,19 @@ main () {
     grep 'INUSE' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
 
     if [ $? -eq 0 ]; then
-        echo "There is an INUSE spare in a zpool." > ${WARN_FILE}
+        echo "There is an INUSE spare in a zpool." >> ${WARN_FILE}
     fi
 
     grep 'in progress' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
 
     if [ $? -eq 0 ]; then
-        echo "There is a resilver or scrub in progress on a zpool." > ${WARN_FILE}
+        echo "There is a resilver or scrub in progress on a zpool." >> ${WARN_FILE}
     fi
 
     grep 'spare-' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
 
     if [ $? -eq 0 ]; then
-        echo "There is a spare pseudo device on a pool."> ${WARN_FILE}
+        echo "There is a spare pseudo device on a pool." >> ${WARN_FILE}
     fi
 }
 
