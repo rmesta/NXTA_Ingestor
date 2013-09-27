@@ -41,6 +41,16 @@ main () {
     if [ $? -eq 0 ]; then
         echo "There is a spare pseudo device on a pool." >> ${WARN_FILE}
     fi
+
+    cat ${BUNDLE_DIR}/zfs/zpool-list-o-all.out | awk '{print $12}' | grep -v 'FAILMODE\|panic' >/dev/null 2>&1
+
+    if [ $? -eq 0 ]; then
+        grep 'No such file or directory' ${BUNDLE_FILE}/plugins/tar-czf-opthac.err >/dev/null 2>&1
+
+        if [ $? -eq 1 ]; then
+            echo "A pool contains a failmode other than panic, but RSF-1 is installed. Verify pool is not part of HA service." >> ${WARN_FILE}
+        fi
+    fi
 }
 
 # this runs first, and does sanity checking before invoking main() function
