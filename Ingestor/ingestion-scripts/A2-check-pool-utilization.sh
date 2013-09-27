@@ -23,7 +23,7 @@ main () {
         UTIL=`echo ${LINE} | awk '{print $3}' | sed 's/%//g'`
 
         if [ $UTIL -gt 74 ]; then
-            echo "$zpool is ${UTIL}% utilized." > ${BUNDLE_DIR}/.ingestor/warnings/check-pool-utilization
+            echo "$zpool is ${UTIL}% utilized." > ${BUNDLE_DIR}/ingestor/warnings/check-pool-utilization
         fi
     done
 }

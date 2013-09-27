@@ -17,7 +17,7 @@ SCRIPT_NAME="A1-prepare-warning-directory.sh"
 main () {
     BUNDLE_DIR=$1 # use BUNDLE_DIR inside here, don't use $1, just for sanity
 
-    mkdir -p ${BUNDLE_DIR}/.ingestor/warnings/
+    mkdir -p ${BUNDLE_DIR}/ingestor/warnings/
 }
 
 # this runs first, and does sanity checking before invoking main() function
