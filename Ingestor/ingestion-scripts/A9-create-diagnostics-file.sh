@@ -17,7 +17,7 @@ SCRIPT_NAME="A9-create-diagnostics-file.sh"
 main () {
     BUNDLE_DIR=$1 # use BUNDLE_DIR inside here, don't use $1, just for sanity
     
-    DIAG=${BUNDLE_DIR}/diag-file
+    DIAG=${BUNDLE_DIR}/scripts/diag-file
     SEPERATOR="----------------------------------------------------------------------------------------------------"
     HOST=`cat ${BUNDLE_DIR}/collector.stats | grep '^Hostname:' | awk -F':' '{first = $1; $1 = ""; print $0}'`
     LICENSE_KEY=`cat ${BUNDLE_DIR}/collector.stats | grep '^License' | awk -F':' '{print $2}'`
