@@ -11,3 +11,7 @@ def verify_bundle_directory(script_name, directory):
     else:
         print script_name + ": directory " + directory + " is not a valid directory."
         return False
+
+def append_file(filename, message):
+    with open(filename, "a") as af:
+        af.write(message)
