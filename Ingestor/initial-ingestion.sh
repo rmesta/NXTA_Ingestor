@@ -9,9 +9,9 @@
 # scripts know the newly untarred bundle has just arrived.
 
 # modify these only if you know why
-UPLOAD_DIR=/mnt/mercury/upload/caselogs
-WORKING_DIR=/mnt/mercury/working
-ARCHIVE_DIR=/mnt/mercury/archive
+UPLOAD_DIR=/mnt/ftp-incoming/upload/caselogs/
+WORKING_DIR=/mnt/ftp-incoming/upload/ingestor/
+ARCHIVE_DIR=/mnt/ftp-incoming/upload/caselogs_archive/
 LOCK_FILE=/tmp/.initial-ingestor.lock
 LOG_FILE=/var/log/initial-ingestor.log
 
@@ -39,7 +39,8 @@ fi
 # get list of potentially finished collector uploads in upload directory
 for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5`; do
     # pre-set some variables we'll need
-    TAR_FILE=`echo ${MD5_FILE} | sed -e 's/.md5$//g'`
+    FP_TAR_FILE=`echo ${MD5_FILE} | sed -e 's/.md5$//g'`
+    TAR_FILE=`basename ${FP_TAR_FILE}`
     UNTAR_DIR=`echo ${TAR_FILE} | sed -e 's/.tar.gz$//g'`
     # we use the date from the bundle to prevent confusion - it is possible that due to timezone
     # differences or misconfiguration on appliance box that the date does not match this server's
@@ -50,7 +51,7 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5`; do
 
     # calculate the md5sums
     GIVEN_MD5=`head -1 ${MD5_FILE} | awk '{printf $1}'`
-    PROVEN_MD5=`md5sum ${TAR_FILE} | awk '{printf $1}'`
+    PROVEN_MD5=`md5sum ${FP_TAR_FILE} | awk '{printf $1}'`
 
     if [ "$GIVEN_MD5" == "$PROVEN_MD5" ]; then
         # the md5sums match, so this file has uploaded completely and correctly, we
@@ -62,13 +63,13 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5`; do
         mkdir ${WORKING_DIR}/${TAR_DATE}
 
         # copy to the archive location 
-        cp ${TAR_FILE} ${ARCHIVE_DIR}/${TAR_DATE}/
+        cp ${FP_TAR_FILE} ${ARCHIVE_DIR}/${TAR_DATE}/
 
         # move to the working location
-        mv ${TAR_FILE} ${WORKING_DIR}/${TAR_DATE}/
+        mv ${FP_TAR_FILE} ${WORKING_DIR}/${TAR_DATE}/
 
         # untar in the working location
-        cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=1 -f ${TAR_FILE}
+        cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=1 -f ${TAR_FILE} && rm -f ${TAR_FILE}
 
         if [ $? > 0 ]; then
             # something went wrong
