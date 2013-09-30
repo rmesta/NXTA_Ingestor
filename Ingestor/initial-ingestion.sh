@@ -42,13 +42,13 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
     # pre-set some variables we'll need
     FP_TAR_FILE=`echo ${MD5_FILE} | sed -e 's/.md5$//g'`
     TAR_FILE=`basename ${FP_TAR_FILE}`
-    UNTAR_DIR=`echo ${TAR_FILE} | sed -e 's/.tar.gz$//g' | rev | cut -d'.' -f2- | rev`
+    UNTAR_DIR=`tar -tvf ${FP_TAR_FILE} | tail -n1 | awk '{print $6}' | awk -F'/' '{print $2}'`
     # we use the date from the bundle to prevent confusion - it is possible that due to timezone
     # differences or misconfiguration on appliance box that the date does not match this server's
     # date, and while we could just use this server's date, it would make locating the tarball
     # more difficult - by using the tarball's date, we make it easier for humans to locate
     # the tarball if they know its filename (which they almost always should)
-    TAR_DATE=`echo ${TAR_FILE} | sed -e 's/.tar.gz$//g' | awk -F'_' '{printf $NF}' | sed 's/[^0-9.-]//g' | awk -F'.' '{printf $1}'`
+    TAR_DATE=`echo ${UNTAR_DIR} | awk -F'_' '{printf $NF}' | sed 's/[^0-9.-]//g' | awk -F'.' '{printf $1}'`
 
     # calculate the md5sums
     GIVEN_MD5=`head -1 ${MD5_FILE} | awk '{printf $1}'`
@@ -90,8 +90,8 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
             # success!
             # create a file that indicates this is a fresh untar
             echo "`date`" > ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}/.just_ingested
-            log "untarred ${TAR_FILE}|${WORKING_DIR}/${TAR_DATE}/"
-            cd ${WORKING_DIR}/${TAR_DATE}/ && rm -f ${TAR_FILE}
+            log "untarred|${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}"
+            rm -f ${WORKING_DIR}/${TAR_DATE}/${TAR_FILE}
             rm -f ${MD5_FILE}
         fi
     fi
