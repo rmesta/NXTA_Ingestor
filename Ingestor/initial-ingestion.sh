@@ -52,7 +52,7 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
 
     # calculate the md5sums
     GIVEN_MD5=`head -1 ${MD5_FILE} | awk '{printf $1}'`
-    PROVEN_MD5=`md5sum ${FP_TAR_FILE} | awk '{printf $1}'`
+    PROVEN_MD5=`md5sum ${FP_TAR_FILE} | awk '{printf $1}'` 2>/dev/null
 
     if [ "$GIVEN_MD5" == "$PROVEN_MD5" ]; then
         # the md5sums match, so this file has uploaded completely and correctly, we
