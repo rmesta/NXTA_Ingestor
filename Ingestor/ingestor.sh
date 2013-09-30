@@ -5,10 +5,10 @@
 # this script is expected to be run by cron, it will not overrun itself if run while still running
 # this script checks for just ingested files
 
-WORKING_DIR=/mnt/mercury/working
+WORKING_DIR=/mnt/ftp-incoming/upload/ingestor/
 LOCK_FILE=/tmp/.ingestor.lock
 LOG_FILE=/var/log/ingestor.log
-INGESTION_SCRIPTS_DIR=./ingestion-scripts
+INGESTION_SCRIPTS_DIR=/root/Collector/Ingestor/ingestion-scripts/
 INITIAL_LOG_FILE=/var/log/initial-ingestor.log
 ITER_START=1
 ITER_END=10
