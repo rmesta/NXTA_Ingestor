@@ -60,8 +60,8 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
         # file is still uploading or such that these may not match
 
         # first, make sure target date directories exists (probably does)
-        mkdir ${ARCHIVE_DIR}/${TAR_DATE}
-        mkdir ${WORKING_DIR}/${TAR_DATE}
+        mkdir ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
+        mkdir ${WORKING_DIR}/${TAR_DATE} >/dev/null 2>&1
 
         # copy to the archive location 
         cp ${FP_TAR_FILE} ${ARCHIVE_DIR}/${TAR_DATE}/
