@@ -66,7 +66,7 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
         # copy to the archive location 
         cp ${FP_TAR_FILE} ${ARCHIVE_DIR}/${TAR_DATE}/
 
-        if [ $? > 0 ]; then
+        if [ $? -gt 0 ]; then
             log "some sort of failure copying ${TAR_FILE} to archive"
             continue
         fi
@@ -74,7 +74,7 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
         # move to the working location
         mv ${FP_TAR_FILE} ${WORKING_DIR}/${TAR_DATE}/
 
-        if [ $? > 0 ]; then
+        if [ $? -gt 0 ]; then
             log "some sort of failure moving ${TAR_FILE} to ${WORKING_DIR}/${TAR_DATE}"
             continue
         fi
@@ -82,7 +82,7 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
         # untar in the working location
         cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=1 -f ${TAR_FILE}
 
-        if [ $? > 0 ]; then
+        if [ $? -gt 0 ]; then
             # something went wrong
             log "some sort of failure untarring ${WORKING_DIR}/${TAR_DATE}/${TAR_FILE}"
             continue
