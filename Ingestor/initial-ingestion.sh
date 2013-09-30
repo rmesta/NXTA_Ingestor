@@ -37,7 +37,8 @@ else
 fi
 
 # get list of potentially finished collector uploads in upload directory
-for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5`; do
+# the 2013_2014 is dirty
+for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_2012-\|_2013-\|_2014-\|_2015-\|_2016-\|_2017-\|_2018-'`; do
     # pre-set some variables we'll need
     FP_TAR_FILE=`echo ${MD5_FILE} | sed -e 's/.md5$//g'`
     TAR_FILE=`basename ${FP_TAR_FILE}`
