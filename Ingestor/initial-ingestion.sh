@@ -17,7 +17,7 @@ LOG_FILE=/var/log/initial-ingestor.log
 
 # set up functions
 log () {
-    echo "`date`|$1" > $LOG_FILE
+    echo "`date`|$1" >> $LOG_FILE
 }
 
 # verify prior run isn't still ongoing, if lock file exists just die silently
