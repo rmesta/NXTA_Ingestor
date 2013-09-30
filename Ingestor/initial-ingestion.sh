@@ -42,7 +42,7 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
     # pre-set some variables we'll need
     FP_TAR_FILE=`echo ${MD5_FILE} | sed -e 's/.md5$//g'`
     TAR_FILE=`basename ${FP_TAR_FILE}`
-    UNTAR_DIR=`echo ${TAR_FILE} | sed -e 's/.tar.gz$//g'`
+    UNTAR_DIR=`echo ${TAR_FILE} | sed -e 's/.tar.gz$//g' | awk -F'.' '{$NF=""}1'`
     # we use the date from the bundle to prevent confusion - it is possible that due to timezone
     # differences or misconfiguration on appliance box that the date does not match this server's
     # date, and while we could just use this server's date, it would make locating the tarball
