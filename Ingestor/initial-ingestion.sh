@@ -66,21 +66,33 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
         # copy to the archive location 
         cp ${FP_TAR_FILE} ${ARCHIVE_DIR}/${TAR_DATE}/
 
+        if [ $? > 0 ]; then
+            log "some sort of failure copying ${TAR_FILE} to archive"
+            continue
+        fi
+
         # move to the working location
         mv ${FP_TAR_FILE} ${WORKING_DIR}/${TAR_DATE}/
 
+        if [ $? > 0 ]; then
+            log "some sort of failure moving ${TAR_FILE} to ${WORKING_DIR}/${TAR_DATE}"
+            continue
+        fi
+
         # untar in the working location
-        cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=1 -f ${TAR_FILE} && rm -f ${TAR_FILE}
+        cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=1 -f ${TAR_FILE}
 
         if [ $? > 0 ]; then
             # something went wrong
-            log "some sort of failure untarring ${TAR_FILE}"
-            exit 1
+            log "some sort of failure untarring ${WORKING_DIR}/${TAR_DATE}/${TAR_FILE}"
+            continue
         else
             # success!
             # create a file that indicates this is a fresh untar
             echo "`date`" > ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}/.just_ingested
             log "untarred ${TAR_FILE}|${WORKING_DIR}/${TAR_DATE}/"
+            cd ${WORKING_DIR}/${TAR_DATE}/ && rm -f ${TAR_FILE}
+            rm -f ${MD5_FILE}
         fi
     fi
 done
