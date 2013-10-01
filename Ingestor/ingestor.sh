@@ -9,7 +9,6 @@ WORKING_DIR=/mnt/ftp-incoming/upload/ingestor/
 LOCK_FILE=/tmp/.ingestor.lock
 LOG_FILE=/var/log/ingestor.log
 INGESTION_SCRIPTS_DIR=/root/Collector/Ingestor/ingestion-scripts/
-INITIAL_LOG_FILE=/var/log/initial-ingestor.log
 ITER_START=1
 ITER_END=10
 
@@ -52,23 +51,19 @@ ingest() {
 }
 
 # check if ingestor.sh was called with an argument, and if so, use that for the directory to
-# run on, and otherwise use initial log file - usually initial log file is right
+# run on, and otherwise use a search of the working directory for untouched bundle dirs
 if [ -z "$1" ]; then
-    # checks initial ingestor log for last 100 entries, it is safe as it won't re-run on one it has
-    # already started on. if somehow more than 100 bundles show up between runs, we would
-    # unfortunately miss them - but it is possible to manually invoke this script with a directory
-    # name, so there's a workaround there
-    for UNTAR_DIR in `tail -n 100 ${INITIAL_LOG_FILE} | grep untarred | awk -F'|' '{printf $3}'`; do
+    for UNTAR_DIR in `ls -1 /mnt/ftp-incoming/upload/ingestor/*/*/.just_ingested | sed 's/.just_ingested//g'`; do
         # is this an untouched bundle - if so, do stuff, otherwise just ignore it as finished/started already
         if [ -e ${UNTAR_DIR}/.just_ingested ]; then
             mv ${UNTAR_DIR}/.just_ingested ${UNTAR_DIR}/.initial_ingested_at
             mkdir ${UNTAR_DIR}/.ingestor_logs
 
-            echo "`date`" > ${UNTAR_DIR}/.ingestor_started
+            echo `date` > ${UNTAR_DIR}/.ingestor_started
 
             ingest ${UNTAR_DIR}
 
-            echo "`date`" > ${UNTAR_DIR}/.ingestor_finished
+            echo `date` > ${UNTAR_DIR}/.ingestor_finished
         fi
     done
 else
@@ -78,11 +73,11 @@ else
             mv $1/.just_ingested $1/.initial_ingested_at
             mkdir $1/.ingestor_logs
 
-            echo "`date`" > $1/.ingestor_started
+            echo `date` > $1/.ingestor_started
     
             ingest $1
 
-            echo "`date`" > $1/.ingestor_finished
+            echo `date` > $1/.ingestor_finished
         else
             # if we're here, there's a directory, but no .just_ingested
             if [ -z "$2" ]; then
