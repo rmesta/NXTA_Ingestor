@@ -25,7 +25,7 @@ main () {
             if [ "${LIC_MD5}" == "${APT_MD5}" ]; then
                 # do nothing
             else
-                echo "License key may not match an entry in /etc/apt/sources.list." >> ${WARN_FILE}
+                echo " - License key may not match an entry in /etc/apt/sources.list." >> ${WARN_FILE}
             fi
         done
     fi

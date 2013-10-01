@@ -22,7 +22,7 @@ main () {
         DUMP_DEVICE=`expr length $(grep DUMPADM_DEVICE ${BUNDLE_DIR}/os/dumpadm.conf)`
 
         if [ "${DUMP_DEVICE}" -lt 16 ]; then  # Empty config line will be 15 characters
-            echo "No dump device detected on the system." > $WARN_FILE
+            echo " - No dump device detected on the system." > $WARN_FILE
         fi
     fi
 }

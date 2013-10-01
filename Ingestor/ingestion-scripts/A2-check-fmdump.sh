@@ -22,7 +22,7 @@ main () {
         NUM_30DAY_ENTRIES=`zcat ${BUNDLE_DIR}/system/fmdump-evt-30day.out.gz | grep '\ 201.\ ' | wc | awk '{print $1}'`
 
         if [ "$NUM_30DAY_ENTRIES" -gt 0 ]; then
-            echo "There are ${NUM_30DAY_ENTRIES} fmdump entries in the last 30 days." > ${WARN_FILE}
+            echo " - There are ${NUM_30DAY_ENTRIES} fmdump entries in the last 30 days." > ${WARN_FILE}
         fi
     fi
 
@@ -30,7 +30,7 @@ main () {
         NUM_FMADM_FAULTY_ENTRIES=`cat ${BUNDLE_DIR}/system/fmadm-faulty.out | grep TIME | wc | awk '{print $1}'`
 
         if [ "$NUM_FMADM_FAULTY_ENTRIES" -gt 0 ]; then
-            echo "There are ${NUM_FMADM_FAULTY_ENTRIES} 'fmadm faulty' entries." >> ${WARN_FILE}
+            echo " - There are ${NUM_FMADM_FAULTY_ENTRIES} 'fmadm faulty' entries." >> ${WARN_FILE}
         fi
     fi
 }

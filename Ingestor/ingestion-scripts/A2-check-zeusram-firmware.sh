@@ -25,7 +25,7 @@ main () {
             grep -B2 -A4 ZeusRAM ${BUNDLE_DIR}/disk/hddisco.out | grep ^revision | grep C023 >/dev/null 2>&1
 
             if [ "$?" -gt 0 ]; then
-                echo "ZeusRAM's with firmware other than C023 possibly detected." > $WARN_FILE
+                echo " - ZeusRAM's with firmware other than C023 possibly detected." > $WARN_FILE
             fi
         fi
     fi

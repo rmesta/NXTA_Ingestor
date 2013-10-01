@@ -22,25 +22,25 @@ main () {
         grep 'DEGRADED\|FAULTED\|OFFLINE' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
 
         if [ $? -eq 0 ]; then
-            echo "There is a DEGRADED, FAULTED, or OFFLINE status on a disk, vdev, or zpool." > ${WARN_FILE}
+            echo " - There is a DEGRADED, FAULTED, or OFFLINE status on a disk, vdev, or zpool." > ${WARN_FILE}
         fi
 
         grep 'INUSE' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
 
         if [ $? -eq 0 ]; then
-            echo "There is an INUSE spare in a zpool." >> ${WARN_FILE}
+            echo " - There is an INUSE spare in a zpool." >> ${WARN_FILE}
         fi
 
         grep 'in progress' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
 
         if [ $? -eq 0 ]; then
-            echo "There is a resilver or scrub in progress on a zpool." >> ${WARN_FILE}
+            echo " - There is a resilver or scrub in progress on a zpool." >> ${WARN_FILE}
         fi
 
         grep 'spare-' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
 
         if [ $? -eq 0 ]; then
-            echo "There is a spare pseudo device on a pool." >> ${WARN_FILE}
+            echo " - There is a spare pseudo device on a pool." >> ${WARN_FILE}
         fi
     fi
 
@@ -51,7 +51,7 @@ main () {
             grep 'No such file or directory' ${BUNDLE_FILE}/plugins/tar-czf-opthac.err >/dev/null 2>&1
     
             if [ $? -eq 1 ]; then
-                echo "A pool contains a failmode other than panic, but RSF-1 is installed. Verify pool is not part of HA service." >> ${WARN_FILE}
+                echo " - A pool contains a failmode other than panic, but RSF-1 is installed. Verify pool is not part of HA service." >> ${WARN_FILE}
             fi
         fi
     fi

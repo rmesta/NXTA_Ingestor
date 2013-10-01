@@ -22,7 +22,7 @@ main () {
         NS_COUNT=`grep nameserver ${BUNDLE_DIR}/network/resolv.conf | wc | awk -F' ' '{printf $1}'`
 
         if [ "${NS_COUNT}" -lt 2 ]; then
-            echo "Less than 2 nameserver entries in resolv.conf." > $WARN_FILE
+            echo " - Less than 2 nameserver entries in resolv.conf." > $WARN_FILE
         fi
     fi
 }
