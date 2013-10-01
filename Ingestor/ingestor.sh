@@ -40,6 +40,8 @@ ingest() {
         for SCRIPT in `ls -1 ${INGESTION_SCRIPTS_DIR}/A${ITERATION}*`; do
             echo "`date`|${SCRIPT}|started" > $1/.ingestor_activity_log
 
+            mkdir $1/.ingestor_logs >/dev/null 2>&1
+
             # ingestion scripts get 1 cmd line arg sent to them - the directory
             # of the bundle they're being run against, we also pipe all
             # stdout and stderr to a file, just for completion sake
