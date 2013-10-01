@@ -38,7 +38,7 @@ ingest() {
     # first
     for (( ITERATION=$ITER_START; ITERATION<=$ITER_END; ITERATION++ )); do
         for SCRIPT in `ls -1 ${INGESTION_SCRIPTS_DIR}/A${ITERATION}*`; do
-            echo "`date`|${SCRIPT}|started" > $1/.ingestor_activity_log
+            echo "`date`|${SCRIPT}|started" >> $1/.ingestor_activity_log
 
             mkdir $1/.ingestor_logs >/dev/null 2>&1
 
@@ -47,7 +47,7 @@ ingest() {
             # stdout and stderr to a file, just for completion sake
             ./${SCRIPT} "$1" > $1/.ingestor_logs/${SCRIPT}.log 2>&1
 
-            echo "`date`|${SCRIPT}|done|$?" > $1/.ingestor_activity_log
+            echo "`date`|${SCRIPT}|done|$?" >> $1/.ingestor_activity_log
         done
     done
 }
