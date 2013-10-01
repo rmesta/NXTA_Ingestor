@@ -7,7 +7,7 @@
 #   simple fmadm checks
 
 # include generic functions file
-source /root/Ingestor/ingestion-scripts/functions.sh
+source /root/Collector/Ingestor/ingestion-scripts/functions.sh
 
 # name of this script - could be filename, or something unique people will recognize
 SCRIPT_NAME="A2-check-fmdump.sh"

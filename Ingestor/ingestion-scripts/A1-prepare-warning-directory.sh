@@ -7,7 +7,7 @@
 #   just prepares a warning directory to put various warnings into
 
 # include generic functions file
-source /root/Ingestor/ingestion-scripts/functions.sh
+source /root/Collector/Ingestor/ingestion-scripts/functions.sh
 
 # name of this script - could be filename, or something unique people will recognize
 SCRIPT_NAME="A1-prepare-warning-directory.sh"

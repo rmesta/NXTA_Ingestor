@@ -8,7 +8,7 @@
 #   - could be used by other scripts to prevent having to know exact dirs to look in, perhaps
 
 # include generic functions file
-source /root/Ingestor/ingestion-scripts/functions.sh
+source /root/Collector/Ingestor/ingestion-scripts/functions.sh
 
 # name of this script - could be filename, or something unique people will recognize
 SCRIPT_NAME="A1-create-symlinks.sh"
