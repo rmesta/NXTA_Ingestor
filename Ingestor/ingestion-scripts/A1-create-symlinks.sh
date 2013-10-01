@@ -20,9 +20,9 @@ main () {
 
     mkdir -p ${BUNDLE_DIR}/ingestor/links/
 
-    cd ${BUNDLE_DIR}/links
+    cd ${BUNDLE_DIR}/ingestor/links
 
-    for OUT_FILE in `ls -1 -R ../*/*.out*`; do
+    for OUT_FILE in `ls -1 -R ../../*/*.out*`; do
         ln -s ${OUT_FILE}
     done
 }
