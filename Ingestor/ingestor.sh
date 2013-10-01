@@ -12,6 +12,11 @@ INGESTION_SCRIPTS_DIR=/root/Collector/Ingestor/ingestion-scripts/
 ITER_START=1
 ITER_END=10
 
+# log function
+log () {
+    echo "`date`|$1" >> $LOG_FILE
+}
+
 # check if we're already running
 if [ -e $LOCK_FILE ]; then
 
@@ -37,7 +42,7 @@ ingest() {
     # wants within a specific number combo -- but this should be ok, the only reason
     # for the iteration is for script chains that REQUIRE another script have run
     # first
-    echo "`date`|running|${TO_INGEST_DIR}" >> $LOG_FILE
+    log "running|${TO_INGEST_DIR}"
 
     if [ -d "${TO_INGEST_DIR}/ingestor" ]; then
         rm -rf "${TO_INGEST_DIR}/ingestor" >/dev/null 2>&1
@@ -62,7 +67,7 @@ ingest() {
         done
     done
 
-    echo "`date`|finished|${TO_INGEST_DIR}" >> $LOG_FILE
+    log "finished|${TO_INGEST_DIR}"
 }
 
 # check if ingestor.sh was called with an argument, and if so, use that for the directory to
