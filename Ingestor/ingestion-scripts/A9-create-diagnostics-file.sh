@@ -49,7 +49,7 @@ main () {
     
     echo "--------------------" >> $DIAG
     OLDIFS=$IFS
-    IFS='\n'
+    IFS=$'\n'
     for DTYPE in $DRIVE_BREAKDOWN; do 
         echo $DTYPE >> $DIAG
     done
