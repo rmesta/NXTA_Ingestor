@@ -24,12 +24,13 @@ main () {
     VERSION=`cat ${BUNDLE_DIR}/collector.stats | grep '^Appliance' | awk -F':' '{print $2}'`
 
     # excepts 100 lines across at least
-    echo "Hostname: $HOST | License Key: $LICENSE_KEY" > $DIAG
+    echo "Hostname: $HOST" > $DIAG
+    echo "License Key: $LICENSE_KEY" >> $DIAG
     echo "Version: $VERSION" >> $DIAG
 
     # summary
     echo $SEPERATOR >> $DIAG
-    echo "Summary" >> $DIAG
+    echo "System Summary" >> $DIAG
     echo $SEPERATOR >> $DIAG
 
     CPU=`cat ${BUNDLE_DIR}/system/kstat-p-td-10-6.out | grep cpu_info | grep 'vendor_id\|brand' | head -2 | awk -F' ' '{$1="";printf $0}'`
@@ -40,11 +41,17 @@ main () {
     NUM_DRIVES=`grep '^=' ${BUNDLE_DIR}/disk/hddisco.out | wc | awk '{printf $1}'`
     DRIVE_BREAKDOWN=$(for DISK in `grep '^=' ${BUNDLE_DIR}/disk/hddisco.out`; do VENDOR=`grep -A16 $DISK ${BUNDLE_DIR}/disk/hddisco.out | grep ^vendor | awk -F' ' '{$1="";printf $0}'`; PRODUCT=`grep -A16 $DISK ${BUNDLE_DIR}/disk/hddisco.out | grep ^product | awk -F' ' '{$1="";printf $0}'`; echo "$VENDOR $PRODUCT"; done | sort -n | uniq -c)
 
-    echo "CPU Type:${CPU}, Total Physical RAM: ${RAM}" >> $DIAG
+    echo "CPU Type:${CPU}, Total Physical RAM: ~${RAM}" >> $DIAG
     echo "" >> $DIAG
     echo "Number Pools: ${ZPOOLS}, Total Datasets: ${NUM_DATASETS}, Total Snapshots: ${NUM_SNAPSHOTS}" >> $DIAG
     echo "Drive Count: ${NUM_DRIVES}" >> $DIAG
     echo "" >> $DIAG
+    echo "Zpool                                                       Size      Capacity %" >> $DIAG
+    echo "--------------------------------------------------------------------------------" >> $DIAG
+    
+    cat ${BUNDLE_DIR}/zfs/zpool-list-o-all.out | grep -v ^NAME | awk '{printf "%-60s %-10s %-4s\n",$1,$2,$3}' >> $DIAG
+    echo "" >> $DIAG
+
     echo "Drive Type Breakdown" >> $DIAG
     
     echo "--------------------" >> $DIAG
@@ -66,8 +73,79 @@ main () {
     cat ${BUNDLE_DIR}/ingestor/warnings/* >> $DIAG
 
     echo $SEPERATOR >> $DIAG
+    echo "Diagnostics Info" >> $DIAG
+    echo $SEPERATOR >> $DIAG
+    echo "" >> $DIAG
 
-    # diagnostics info
+    echo "Installed Plugins" >> $DIAG
+    echo "-----------------" >> $DIAG
+    NMS_PLUGINS='autocdp autosmart autosync cloudarchive comstar-fc confguard ns-cluster rsf-cluster simple-failover vmdc worm'
+    NMC_PLUGINS='bonnie-benchmark iperf-benchmark storagelink iozone-benchmark oracle-backup clamav-antivirus ups'
+    PLUGINS='remoterep'
+
+    for PLUGIN in $NMS_PLUGINS; do
+        grep -i nms-${PLUGIN} ${BUNDLE_DIR}/appliance/dpkg-l.out | grep ^ii | sed 's/nms-//g' | awk '{printf "%-25s %s\n",$2,$3}' >> $DIAG
+    done
+
+    for PLUGIN in $NMC_PLUGINS; do
+        grep -i nmc-${PLUGIN} ${BUNDLE_DIR}/appliance/dpkg-l.out | grep ^ii | sed 's/nmc-//g' | awk '{printf "%-25s %s\n",$2,$3}' >> $DIAG
+    done
+
+    for PLUGIN in $PLUGINS; do
+        grep -i ${PLUGIN} ${BUNDLE_DIR}/appliance/dpkg-l.out | grep ^ii | awk '{printf "%-25s %s\n",$2,$3}' >> $DIAG
+    done    
+
+    echo "" >> $DIAG
+    echo "On-Board Devices" >> $DIAG
+    echo "----------------" >> $DIAG
+
+    cat ${BUNDLE_DIR}/system/prtdiag-v.out | awk '/==== On-Board Devices/,/==== Upg/' | grep -v '====' >> $DIAG
+
+    echo "Upgradeable Slots" >> $DIAG
+    echo "-----------------" >> $DIAG
+
+    cat ${BUNDLE_DIR}/system/prtdiag-v.out | awk '/==== Upgrad/,0' | grep -v '====' >> $DIAG
+    echo "" >> $DIAG
+
+    echo "/etc/resolv.conf" >> $DIAG
+    echo "----------------" >> $DIAG
+
+    cat ${BUNDLE_DIR}/network/resolv.conf >> $DIAG
+    echo "" >> $DIAG
+
+    echo "ifconfig -a" >> $DIAG
+    echo "-----------" >> $DIAG
+
+    cat ${BUNDLE_DIR}/network/ifconfig-a.out >> $DIAG
+    echo "" >> $DIAG
+
+    echo "dladm show-link" >> $DIAG
+    echo "---------------" >> $DIAG
+
+    cat ${BUNDLE_DIR}/network/dladm-show-link.out >> $DIAG
+    echo "" >> $DIAG
+
+    echo "dladm show-aggr" >> $DIAG
+    echo "---------------" >> $DIAG
+
+    cat ${BUNDLE_DIR}/network/dladm-show-aggr.out >> $DIAG
+    echo "" >> $DIAG
+    cat ${BUNDLE_DIR}/network/dladm-show-aggr-x.out >> $DIAG
+    echo "" >> $DIAG
+    cat ${BUNDLE_DIR}/network/dladm-show-aggr-l.out >> $DIAG
+    echo "" >> $DIAG
+
+    echo "netstat -rn" >> $DIAG
+    echo "-----------" >> $DIAG
+
+    cat ${BUNDLE_DIR}/network/netstat-rn.out >> $DIAG
+    echo "" >> $DIAG
+
+    echo "Last 20 lines of root .bash_history" >> $DIAG
+    echo "-----------------------------------" >> $DIAG
+
+    cat ${BUNDLE_DIR}/os/.bash_history | tail -n20 >> $DIAG
+    echo "" >> $DIAG
 }
 
 # this runs first, and does sanity checking before invoking main() function
