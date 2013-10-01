@@ -4,10 +4,10 @@
 # Created On: 2013-09-26
 # Last Updated On: 2013-09-26
 # Description:
-#   creates and initially seeds a summary/diagnostics file
+#   creates and initially seeds a summary/diagnostics file similar to old support bundle 'diag' file
 
 # include generic functions file
-source /root/Ingestor/ingestion-scripts/functions.sh
+source /root/Collector/Ingestor/ingestion-scripts/functions.sh
 
 # name of this script - could be filename, or something unique people will recognize
 SCRIPT_NAME="A9-create-diagnostics-file.sh"
@@ -32,6 +32,17 @@ main () {
     echo "Summary" >> $DIAG
     echo $SEPERATOR >> $DIAG
 
+    CPU=``
+    RAM=``
+    ZPOOLS=``
+    NUM_FILESYSTEMS=``
+    NUM_ZVOLS=``
+    NUM_SNAPSHOTS=``
+    NUM_CLONES=``
+    DRIVE_COUNT=``
+    JBOD_COUNT=``
+
+    echo 
 
     # waarnings
     echo $SEPERATOR >> $DIAG
@@ -41,6 +52,8 @@ main () {
     cat ${BUNDLE_DIR}/ingestor/warnings/* >> $DIAG
 
     echo $SEPERATOR >> $DIAG
+
+    # diagnostics info
 }
 
 # this runs first, and does sanity checking before invoking main() function

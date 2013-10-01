@@ -7,7 +7,7 @@
 #   checks if the pool has any obvious warning signs
 
 # include generic functions file
-source /root/Ingestor/ingestion-scripts/functions.sh
+source /root/Collector/Ingestor/ingestion-scripts/functions.sh
 
 # name of this script - could be filename, or something unique people will recognize
 SCRIPT_NAME="A2-check-pool-status.sh"
