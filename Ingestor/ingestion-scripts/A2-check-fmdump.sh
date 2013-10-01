@@ -18,16 +18,20 @@ main () {
     BUNDLE_DIR=$1 # use BUNDLE_DIR inside here, don't use $1, just for sanity
     WARN_FILE=${BUNDLE_DIR}/ingestor/warnings/check-fmdump
 
-    NUM_30DAY_ENTRIES=`zcat ${BUNDLE_DIR}/system/fmdump-evt-30day.out.gz | grep '\ 201.\ ' | wc | awk '{print $1}'`
+    if [ -f "${BUNDLE_DIR}/system/fmdump-evt-30day.out.gz" ]; then
+        NUM_30DAY_ENTRIES=`zcat ${BUNDLE_DIR}/system/fmdump-evt-30day.out.gz | grep '\ 201.\ ' | wc | awk '{print $1}'`
 
-    if [ "$NUM_30DAY_ENTRIES" -gt 0 ]; then
-        echo "There are ${NUM_30DAY_ENTRIES} fmdump entries in the last 30 days." > ${WARN_FILE}
+        if [ "$NUM_30DAY_ENTRIES" -gt 0 ]; then
+            echo "There are ${NUM_30DAY_ENTRIES} fmdump entries in the last 30 days." > ${WARN_FILE}
+        fi
     fi
 
-    NUM_FMADM_FAULTY_ENTRIES=`cat ${BUNDLE_DIR}/system/fmadm-faulty.out | grep TIME | wc | awk '{print $1}'`
+    if [ -f "${BUNDLE_DIR}/system/fmadm-faulty.out" ]; then
+        NUM_FMADM_FAULTY_ENTRIES=`cat ${BUNDLE_DIR}/system/fmadm-faulty.out | grep TIME | wc | awk '{print $1}'`
 
-    if [ "$NUM_FMADM_FAULTY_ENTRIES" -gt 0 ]; then
-        echo "There are ${NUM_FMADM_FAULTY_ENTRIES} 'fmadm faulty' entries." >> ${WARN_FILE}
+        if [ "$NUM_FMADM_FAULTY_ENTRIES" -gt 0 ]; then
+            echo "There are ${NUM_FMADM_FAULTY_ENTRIES} 'fmadm faulty' entries." >> ${WARN_FILE}
+        fi
     fi
 }
 
