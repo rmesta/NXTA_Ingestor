@@ -19,10 +19,14 @@ main () {
     WARN_FILE=${BUNDLE_DIR}/ingestor/warnings/check-zeusram-firmware
 
     if [ -f "${BUNDLE_DIR}/disk/hddisco.out" ]; then
-        grep -B2 -A4 ZeusRAM ${BUNDLE_DIR}/disk/hddisco.out | grep ^revision | grep C023 >/dev/null 2>&1
+        grep ZeusRAM ${BUNDLE_DIR}/disk/hddisco.out
 
-        if [ "$?" -gt 0 ]; then
-            echo "ZeusRAM's with firmware other than C023 possibly detected." > $WARN_FILE
+        if [ "$?" -eq 0 ]; then
+            grep -B2 -A4 ZeusRAM ${BUNDLE_DIR}/disk/hddisco.out | grep ^revision | grep C023 >/dev/null 2>&1
+
+            if [ "$?" -gt 0 ]; then
+                echo "ZeusRAM's with firmware other than C023 possibly detected." > $WARN_FILE
+            fi
         fi
     fi
 }
