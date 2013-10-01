@@ -19,7 +19,7 @@ main () {
     WARN_FILE=${BUNDLE_DIR}/ingestor/warnings/check-resolvers
 
     if [ -f "${BUNDLE_DIR}/network/resolv.conf" ]; then
-        NS_COUNT=`grep nameserver network/resolv.conf | wc | awk -F' ' '{printf $1}'`
+        NS_COUNT=`grep nameserver ${BUNDLE_DIR}/network/resolv.conf | wc | awk -F' ' '{printf $1}'`
 
         if [ "${NS_COUNT}" -lt 2 ]; then
             echo "Less than 2 nameserver entries in resolv.conf." > $WARN_FILE
