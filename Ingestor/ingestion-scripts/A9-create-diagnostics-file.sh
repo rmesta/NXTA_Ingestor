@@ -34,11 +34,11 @@ main () {
 
     CPU=`cat ${BUNDLE_DIR}/system/kstat-p-td-10-6.out | grep cpu_info | grep 'vendor_id\|brand' | head -2 | awk -F' ' '{$1="";printf $0}'`
     RAM=`grep 'Physical' ${BUNDLE_DIR}/system/echo-memstat-mdb-k-tail-n2.out | awk '{print int($3/1024+0.5)" GB"}'`
-    ZPOOLS=`grep -v '^NAME\|^syspool' ${BUNDLE_DIR}/system/zpool-list-o-all.out | wc | awk '{printf $1}'`
-    NUM_DATASETS=`grep -v '^NAME\|@' ${BUNDLE_DIR}/system/zfs-get-p-all.out | awk '{print $1}' | sort -n | uniq | wc | awk '{printf $1}'`
-    NUM_SNAPSHOTS=`grep '@' zfs-get-p-all.out | awk '{print $1}' | sort -n | uniq | wc | awk '{printf $1}'`
-    NUM_DRIVES=`grep '^=' hddisco.out | wc | awk '{printf $1}'`
-    DRIVE_BREAKDOWN=$(for DISK in `grep '^=' hddisco.out`; do VENDOR=`grep -A16 $DISK hddisco.out | grep ^vendor | awk -F' ' '{$1="";printf $0}'`; PRODUCT=`grep -A16 $DISK hddisco.out | grep ^product | awk -F' ' '{$1="";printf $0}'`; echo "$VENDOR $PRODUCT"; done | sort -n | uniq -c)
+    ZPOOLS=`grep -v '^NAME\|^syspool' ${BUNDLE_DIR}/zfs/zpool-list-o-all.out | wc | awk '{printf $1}'`
+    NUM_DATASETS=`grep -v '^NAME\|@' ${BUNDLE_DIR}/zfs/zfs-get-p-all.out | awk '{print $1}' | sort -n | uniq | wc | awk '{printf $1}'`
+    NUM_SNAPSHOTS=`grep '@' ${BUNDLE_DIR}/zfs/zfs-get-p-all.out | awk '{print $1}' | sort -n | uniq | wc | awk '{printf $1}'`
+    NUM_DRIVES=`grep '^=' ${BUNDLE_DIR}/hddisco.out | wc | awk '{printf $1}'`
+    DRIVE_BREAKDOWN=$(for DISK in `grep '^=' ${BUNDLE_DIR}/hddisco.out`; do VENDOR=`grep -A16 $DISK ${BUNDLE_DIR}/hddisco.out | grep ^vendor | awk -F' ' '{$1="";printf $0}'`; PRODUCT=`grep -A16 $DISK ${BUNDLE_DIR}/hddisco.out | grep ^product | awk -F' ' '{$1="";printf $0}'`; echo "$VENDOR $PRODUCT"; done | sort -n | uniq -c)
 
     echo "CPU Type: ${CPU}           Total Physical RAM: ${RAM}" >> $DIAG
     echo "Number Pools: ${ZPOOLS}, Total Datasets: ${NUM_DATASETS}, Total Snapshots: ${NUM_SNAPSHOTS}" >> $DIAG
