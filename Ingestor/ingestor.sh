@@ -59,7 +59,7 @@ ingest() {
 # check if ingestor.sh was called with an argument, and if so, use that for the directory to
 # run on, and otherwise use a search of the working directory for untouched bundle dirs
 if [ -z "$1" ]; then
-    for UNTAR_DIR in `ls -1 /mnt/ftp-incoming/upload/ingestor/*/*/.just_ingested | sed 's/.just_ingested//g'`; do
+    for UNTAR_DIR in `ls -1 ${WORKING_DIR}*/*/.just_ingested | sed 's/.just_ingested//g'`; do
         # is this an untouched bundle - if so, do stuff, otherwise just ignore it as finished/started already
         if [ -e ${UNTAR_DIR}/.just_ingested ]; then
             mv ${UNTAR_DIR}/.just_ingested ${UNTAR_DIR}/.initial_ingested_at
