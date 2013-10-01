@@ -23,7 +23,8 @@ if [ -e $LOCK_FILE ]; then
     # check if the pid still exists for the existing lock file
     if ps -p `cat ${LOCK_FILE}` > /dev/null
     then
-        log "unable to run, lock file exists and pid active"
+        # commented out for now to avoid cron-based spam
+        # log "unable to run, lock file exists and pid active"
         exit 1
     else
         log "lock file still existed, but no active pid, choosing to run"
