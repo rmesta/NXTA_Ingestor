@@ -42,7 +42,7 @@ main () {
     NUM_DRIVES=`grep '^=' ${BUNDLE_DIR}/disk/hddisco.out | wc | awk '{printf $1}'`
     DRIVE_BREAKDOWN=$(for DISK in `grep '^=' ${BUNDLE_DIR}/disk/hddisco.out`; do VENDOR=`grep -A16 $DISK ${BUNDLE_DIR}/disk/hddisco.out | grep ^vendor | awk -F' ' '{$1="";printf $0}'`; PRODUCT=`grep -A16 $DISK ${BUNDLE_DIR}/disk/hddisco.out | grep ^product | awk -F' ' '{$1="";printf $0}'`; echo "$VENDOR $PRODUCT"; done | sort -n | uniq -c)
 
-    echo "CPU Type:${CPU}, Total Physical RAM: ~${RAM}" >> $DIAG
+    echo "Total Physical RAM: ~${RAM}, CPU Type:${CPU}" >> $DIAG
     echo "" >> $DIAG
     echo "Number Pools: ${ZPOOLS}, Total Datasets: ${NUM_DATASETS}, Total Snapshots: ${NUM_SNAPSHOTS}" >> $DIAG
     echo "Drive Count: ${NUM_DRIVES}" >> $DIAG
