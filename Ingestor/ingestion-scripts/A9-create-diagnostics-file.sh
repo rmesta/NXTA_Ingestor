@@ -46,8 +46,17 @@ main () {
     echo "Drive Count: ${NUM_DRIVES}" >> $DIAG
     echo "" >> $DIAG
     echo "Drive Type Breakdown" >> $DIAG
+    
     echo "--------------------" >> $DIAG
-    OLDIFS=$IFS;IFS='\n'; for DTYPE in $DRIVE_BREAKDOWN; do echo $DTYPE >>$DIAG; done; IFS=$OLDIFS
+    OLDIFS=$IFS
+    IFS='\n'
+    for DTYPE in $DRIVE_BREAKDOWN; do 
+        echo $DTYPE >> $DIAG
+    done
+    
+    IFS=$OLDIFS
+
+    echo ""
 
     # waarnings
     echo $SEPERATOR >> $DIAG
