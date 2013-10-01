@@ -11,6 +11,7 @@
 # modify these only if you know why
 UPLOAD_DIR=/mnt/ftp-incoming/upload/caselogs/
 WORKING_DIR=/mnt/ftp-incoming/upload/ingestor/
+SYMLINK_DIR=/mnt/ftp-incoming/upload/links/
 ARCHIVE_DIR=/mnt/ftp-incoming/upload/caselogs_archive/
 LOCK_FILE=/tmp/.initial-ingestor.lock
 LOG_FILE=/var/log/initial-ingestor.log
@@ -33,8 +34,31 @@ if [ -e $LOCK_FILE ]; then
         echo -n "$$" > $LOCK_FILE
     fi
 else
+    # lock file doesn't exist, yay, make it and throw our pid in it
     echo -n "$$" > $LOCK_FILE
 fi
+
+# directory globals existence checks
+if [ ! -d "${UPLOAD_DIR}" ]; then
+    log "upload directory (${UPLOAD_DIR}) nonexistent, dying"
+    rm -f ${LOCK_FILE}
+    exit 1
+fi
+
+if [ ! -d "${ARCHIVE_DIR}" ]; then
+    log "archive directory (${ARCHIVE_DIR}) nonexistent, dying"
+    rm -f ${LOCK_FILE}
+    exit 1
+fi
+
+if [ ! -d "${WORKING_DIR}" ]; then
+    log "working driectory (${WORKING_DIR}) nonexistent, dying"
+    rm -f ${LOCK_FILE}
+    exit 1
+fi
+
+# meh, if symlink dir doesn't exist by this point, just make the damn thing
+mkdir -p ${SYMLINK_DIR} >/dev/null 2>&1
 
 # get list of potentially finished collector uploads in upload directory
 # the 2013_2014 is dirty
@@ -63,36 +87,31 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
         mkdir ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
         mkdir ${WORKING_DIR}/${TAR_DATE} >/dev/null 2>&1
 
-        # copy to the archive location 
-        cp ${FP_TAR_FILE} ${ARCHIVE_DIR}/${TAR_DATE}/
+        # move to the archive location 
+        mv ${FP_TAR_FILE} ${ARCHIVE_DIR}/${TAR_DATE}/
 
         if [ $? -gt 0 ]; then
-            log "some sort of failure copying ${TAR_FILE} to archive"
+            log "some sort of failure moving ${TAR_FILE} to archive"
             continue
         fi
 
-        # move to the working location
-        mv ${FP_TAR_FILE} ${WORKING_DIR}/${TAR_DATE}/
-
-        if [ $? -gt 0 ]; then
-            log "some sort of failure moving ${TAR_FILE} to ${WORKING_DIR}/${TAR_DATE}"
-            continue
-        fi
+        # we've moved the tarball out, so get rid of its md5 file
+        rm -f ${MD5_FILE}
 
         # untar in the working location
-        cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=1 -f ${TAR_FILE}
+        cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=1 -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
 
         if [ $? -gt 0 ]; then
             # something went wrong
-            log "some sort of failure untarring ${WORKING_DIR}/${TAR_DATE}/${TAR_FILE}"
+            log "some sort of failure untarring ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} to ${WORKING_DIR}/${TAR_DATE}/"
             continue
         else
             # success!
             # create a file that indicates this is a fresh untar
             echo "`date`" > ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}/.just_ingested
             log "untarred|${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}"
-            rm -f ${WORKING_DIR}/${TAR_DATE}/${TAR_FILE}
-            rm -f ${MD5_FILE}
+            # symlink to a symlink dir, making it easier to find, maybe
+            ln -s ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR} ${SYMLINK_DIR}
         fi
     fi
 done
