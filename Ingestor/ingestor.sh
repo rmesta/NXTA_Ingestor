@@ -30,6 +30,7 @@ fi
 
 # set up ingest function
 ingest() {
+    TO_INGEST_DIR=$1
     # this basically runs all the scripts in ingestion-scripts dir, but does so
     # o nly if they start with an A (that way we can disable scripts by renaming, and
     # it runs them in sequential order from 1 to 99 -- and then whatever order ls
@@ -38,16 +39,17 @@ ingest() {
     # first
     for (( ITERATION=$ITER_START; ITERATION<=$ITER_END; ITERATION++ )); do
         for SCRIPT in `ls -1 ${INGESTION_SCRIPTS_DIR}/A${ITERATION}*`; do
-            echo "`date`|${SCRIPT}|started" >> $1/.ingestor_activity_log
+            BNAME_SCRIPT=`basename ${SCRIPT}`
+            echo "`date`|${SCRIPT}|started" >> ${TO_INGEST_DIR}/.ingestor_activity_log
 
-            mkdir $1/.ingestor_logs >/dev/null 2>&1
+            mkdir ${TO_INGEST_DIR}/.ingestor_logs >/dev/null 2>&1
 
             # ingestion scripts get 1 cmd line arg sent to them - the directory
             # of the bundle they're being run against, we also pipe all
             # stdout and stderr to a file, just for completion sake
-            ./${SCRIPT} "$1" > $1/.ingestor_logs/${SCRIPT}.log 2>&1
+            ./${SCRIPT} "${TO_INGEST_DIR}" > ${TO_INGEST_DIR}/.ingestor_logs/${BNAME_SCRIPT}.log 2>&1
 
-            echo "`date`|${SCRIPT}|done|$?" >> $1/.ingestor_activity_log
+            echo "`date`|${SCRIPT}|done|$?" >> ${TO_INGEST_DIR}/.ingestor_activity_log
         done
     done
 }
