@@ -18,37 +18,41 @@ main () {
     BUNDLE_DIR=$1 # use BUNDLE_DIR inside here, don't use $1, just for sanity
     WARN_FILE=${BUNDLE_DIR}/ingestor/warnings/check-pool-status
 
-    grep 'DEGRADED\|FAULTED\|OFFLINE' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
+    if [ -f "${BUNDLE_DIR}/zfs/zpool-status-dv.out" ]; then
+        grep 'DEGRADED\|FAULTED\|OFFLINE' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
 
-    if [ $? -eq 0 ]; then
-        echo "There is a DEGRADED, FAULTED, or OFFLINE status on a disk, vdev, or zpool." > ${WARN_FILE}
+        if [ $? -eq 0 ]; then
+            echo "There is a DEGRADED, FAULTED, or OFFLINE status on a disk, vdev, or zpool." > ${WARN_FILE}
+        fi
+
+        grep 'INUSE' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
+
+        if [ $? -eq 0 ]; then
+            echo "There is an INUSE spare in a zpool." >> ${WARN_FILE}
+        fi
+
+        grep 'in progress' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
+
+        if [ $? -eq 0 ]; then
+            echo "There is a resilver or scrub in progress on a zpool." >> ${WARN_FILE}
+        fi
+
+        grep 'spare-' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
+
+        if [ $? -eq 0 ]; then
+            echo "There is a spare pseudo device on a pool." >> ${WARN_FILE}
+        fi
     fi
 
-    grep 'INUSE' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
+    if [ -f "${BUNDLE_DIR}/zfs/zpool-list-o-all.out" ]; then
+        cat ${BUNDLE_DIR}/zfs/zpool-list-o-all.out | awk '{print $12}' | grep -v 'FAILMODE\|panic' >/dev/null 2>&1
 
-    if [ $? -eq 0 ]; then
-        echo "There is an INUSE spare in a zpool." >> ${WARN_FILE}
-    fi
-
-    grep 'in progress' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
-
-    if [ $? -eq 0 ]; then
-        echo "There is a resilver or scrub in progress on a zpool." >> ${WARN_FILE}
-    fi
-
-    grep 'spare-' ${BUNDLE_DIR}/zfs/zpool-status-dv.out >/dev/null 2>&1
-
-    if [ $? -eq 0 ]; then
-        echo "There is a spare pseudo device on a pool." >> ${WARN_FILE}
-    fi
-
-    cat ${BUNDLE_DIR}/zfs/zpool-list-o-all.out | awk '{print $12}' | grep -v 'FAILMODE\|panic' >/dev/null 2>&1
-
-    if [ $? -eq 0 ]; then
-        grep 'No such file or directory' ${BUNDLE_FILE}/plugins/tar-czf-opthac.err >/dev/null 2>&1
-
-        if [ $? -eq 1 ]; then
-            echo "A pool contains a failmode other than panic, but RSF-1 is installed. Verify pool is not part of HA service." >> ${WARN_FILE}
+        if [ $? -eq 0 ]; then
+            grep 'No such file or directory' ${BUNDLE_FILE}/plugins/tar-czf-opthac.err >/dev/null 2>&1
+    
+            if [ $? -eq 1 ]; then
+                echo "A pool contains a failmode other than panic, but RSF-1 is installed. Verify pool is not part of HA service." >> ${WARN_FILE}
+            fi
         fi
     fi
 }
