@@ -4,7 +4,7 @@
 # Created On: 2013-09-26
 # Last Updated On: 2013-09-26
 # Description:
-#   checks if the pool utilization is greater than 75% on any pool and reports
+#   checks if the pool utilization is greater than 70% on any pool and reports
 #   that if it is
 
 # include generic functions file
@@ -25,7 +25,7 @@ main () {
             ZPOOL=`echo ${LINE} | awk '{print $1}'`
             UTIL=`echo ${LINE} | awk '{print $3}' | sed 's/%//g'`
     
-            if [ $UTIL -gt 74 ]; then
+            if [ $UTIL -gt 69 ]; then
                 echo "${ZPOOL} is ${UTIL}% utilized." > ${BUNDLE_DIR}/ingestor/warnings/check-pool-utilization
             fi
         done
