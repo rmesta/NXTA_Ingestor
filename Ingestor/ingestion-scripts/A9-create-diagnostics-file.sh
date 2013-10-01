@@ -24,9 +24,10 @@ main () {
     VERSION=`cat ${BUNDLE_DIR}/collector.stats | grep '^Appliance' | awk -F':' '{print $2}'`
 
     # excepts 100 lines across at least
-    echo "Hostname:\t$HOST" > $DIAG
-    echo "License Key:\t$LICENSE_KEY" >> $DIAG
-    echo "Version:\t$VERSION" >> $DIAG
+    echo "Hostname:   $HOST" > $DIAG
+    echo "License Key: $LICENSE_KEY" >> $DIAG
+    echo "Version:     $VERSION" >> $DIAG
+    echo "" >> $DIAG
 
     # summary
     echo $SEPERATOR >> $DIAG
@@ -72,6 +73,7 @@ main () {
 
     cat ${BUNDLE_DIR}/ingestor/warnings/* >> $DIAG
 
+    echo "" >> $DIAG
     echo $SEPERATOR >> $DIAG
     echo "Diagnostics Info" >> $DIAG
     echo $SEPERATOR >> $DIAG
