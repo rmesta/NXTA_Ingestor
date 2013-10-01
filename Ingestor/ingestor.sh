@@ -38,7 +38,9 @@ ingest() {
     # for the iteration is for script chains that REQUIRE another script have run
     # first
     for (( ITERATION=$ITER_START; ITERATION<=$ITER_END; ITERATION++ )); do
-        for SCRIPT in `ls -1 ${INGESTION_SCRIPTS_DIR}/A${ITERATION}*`; do
+        cd ${INGESTION_SCRIPTS_DIR}
+
+        for SCRIPT in `ls -1 A${ITERATION}*`; do
             BNAME_SCRIPT=`basename ${SCRIPT}`
             echo "`date`|${SCRIPT}|started" >> ${TO_INGEST_DIR}/.ingestor_activity_log
 
