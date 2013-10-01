@@ -37,6 +37,13 @@ ingest() {
     # wants within a specific number combo -- but this should be ok, the only reason
     # for the iteration is for script chains that REQUIRE another script have run
     # first
+    echo "`date`|running|${TO_INGEST_DIR}" >> $LOG_FILE
+
+    if [ -d "${TO_INGEST_DIR}/ingestor" ]; then
+        rm -rf "${TO_INGEST_DIR}/ingestor" >/dev/null 2>&1
+        rm -rf "${TO_INGEST_DIR}/.ingestor_logs" >/dev/null 2>&1
+    fi
+
     for (( ITERATION=$ITER_START; ITERATION<=$ITER_END; ITERATION++ )); do
         cd ${INGESTION_SCRIPTS_DIR}
 
@@ -44,7 +51,7 @@ ingest() {
             BNAME_SCRIPT=`basename ${SCRIPT}`
             echo "`date`|${SCRIPT}|started" >> ${TO_INGEST_DIR}/.ingestor_activity_log
 
-            mkdir ${TO_INGEST_DIR}/.ingestor_logs >/dev/null 2>&1
+            mkdir "${TO_INGEST_DIR}/.ingestor_logs" >/dev/null 2>&1
 
             # ingestion scripts get 1 cmd line arg sent to them - the directory
             # of the bundle they're being run against, we also pipe all
@@ -54,6 +61,8 @@ ingest() {
             echo "`date`|${SCRIPT}|done|$?" >> ${TO_INGEST_DIR}/.ingestor_activity_log
         done
     done
+
+    echo "`date`|finished|${TO_INGEST_DIR}" >> $LOG_FILE
 }
 
 # check if ingestor.sh was called with an argument, and if so, use that for the directory to
