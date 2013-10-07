@@ -44,7 +44,7 @@ main () {
 
     echo "Total Physical RAM: ~${RAM}, CPU Type:${CPU}" >> $DIAG
     echo "" >> $DIAG
-    echo "Number Pools: ${ZPOOLS}, Total Datasets: ${NUM_DATASETS}, Total Snapshots: ${NUM_SNAPSHOTS}" >> $DIAG
+    echo "Number of Data Pools: ${ZPOOLS}, Total Datasets: ${NUM_DATASETS}, Total Snapshots: ${NUM_SNAPSHOTS}" >> $DIAG
     echo "Drive Count: ${NUM_DRIVES}" >> $DIAG
     echo "" >> $DIAG
     echo "Zpool                                                       Size      Capacity %" >> $DIAG
