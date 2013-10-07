@@ -33,9 +33,6 @@ def main(bundle_dir):
                 pool = columns[0].split('/')[0]
                 dataset = columns[0]
 
-                if '@' in dataset:
-                    snapshots = snapshots + 1
-
                 zfs_property = columns[1]
                 zfs_property_value = columns[2]
                 zfs_property_origin = columns[3]
@@ -46,6 +43,9 @@ def main(bundle_dir):
                 if not dataset in datasets.keys():
                     datasets[dataset] = {}
                     datasets[dataset][zfs_property] = zfs_property_value
+
+                    if '@' in dataset:
+                        snapshots = snapshots + 1
                 else:
                     datasets[dataset][zfs_property] = zfs_property_value
 
