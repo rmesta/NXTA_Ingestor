@@ -71,7 +71,8 @@ ingest() {
     done
 
     chown -R ${FOWNER}:${FGROUP} ${TO_INGEST_DIR} >/dev/null 2>&1
-    chmod -R 770 ${TO_INGEST_DIR} >/dev/null 2>&1
+    find ${TO_INGEST_DIR} -type d -print0 | xargs -0 chmod 770
+    find ${TO_INGEST_DIR} -type f -print0 | xargs -0 chmod 660
 
     log "finished|${TO_INGEST_DIR}"
 }

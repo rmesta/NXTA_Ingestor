@@ -14,7 +14,7 @@ if (strpos(basename($_FILES['uploaded_file']['name']), "collector") !== false) {
         if (move_uploaded_file($_FILES['uploaded_file']['tmp_name'], $upload_file)) {
             echo 'success';
 
-            chmod($upload_file, 0600);
+            chmod($upload_file, 0660);
         } else {
             echo 'failure';
         }
