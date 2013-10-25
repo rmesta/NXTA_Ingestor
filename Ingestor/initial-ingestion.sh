@@ -23,21 +23,24 @@ log () {
     echo "`date`|$1" >> $LOG_FILE
 }
 
-# verify prior run isn't still ongoing, if lock file exists just die silently
-if [ -e $LOCK_FILE ]; then
+# only do this if not calling with specific tarball
+if [ ! -z "$1" ]; then
+    # verify prior run isn't still ongoing, if lock file exists just die silently
+    if [ -e $LOCK_FILE ]; then
 
-    # check if the pid still exists for the existing lock file
-    if ps -p `cat ${LOCK_FILE}` > /dev/null
-    then
-        log "unable to run, lock file exists and pid active"
-        exit 1
+        # check if the pid still exists for the existing lock file
+        if ps -p `cat ${LOCK_FILE}` > /dev/null
+        then
+           log "unable to run, lock file exists and pid active"
+         exit 1
+        else
+          log "lock file still existed, but no active pid, choosing to run"
+         echo -n "$$" > $LOCK_FILE
+     fi
     else
-        log "lock file still existed, but no active pid, choosing to run"
-        echo -n "$$" > $LOCK_FILE
+       # lock file doesn't exist, yay, make it and throw our pid in it
+       echo -n "$$" > $LOCK_FILE
     fi
-else
-    # lock file doesn't exist, yay, make it and throw our pid in it
-    echo -n "$$" > $LOCK_FILE
 fi
 
 # directory globals existence checks
@@ -62,11 +65,8 @@ fi
 # meh, if symlink dir doesn't exist by this point, just make the damn thing
 mkdir -p ${SYMLINK_DIR} >/dev/null 2>&1
 
-# get list of potentially finished collector uploads in upload directory
-# the 2013_2014 is dirty
-for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep -v EVAL | grep '_2011-\|_2012-\|_2013-\|_2014-\|_2015-\|_2016-\|_2017-\|_2018-'`; do
-    # pre-set some variables we'll need
-    FP_TAR_FILE=`echo ${MD5_FILE} | sed -e 's/.md5$//g'`
+ingest() {
+    FP_TAR_FILE=$1
     TAR_FILE=`basename ${FP_TAR_FILE}`
     UNTAR_DIR=`tar -tvf ${FP_TAR_FILE} | tail -n1 | awk '{print $6}' | awk -F'/' '{print $2}'`
     # we use the date from the bundle to prevent confusion - it is possible that due to timezone
@@ -76,50 +76,60 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep -v EVAL | gre
     # the tarball if they know its filename (which they almost always should)
     TAR_DATE=`echo ${UNTAR_DIR} | awk -F'_' '{printf $NF}' | sed 's/[^0-9.-]//g' | awk -F'.' '{printf $1}'`
 
-    # calculate the md5sums
-    GIVEN_MD5=`head -1 ${MD5_FILE} | awk '{printf $1}'`
-    PROVEN_MD5=`md5sum ${FP_TAR_FILE} | awk '{printf $1}'` 2>/dev/null
+    # first, make sure target date directories exists (probably does)
+    mkdir ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
+    chown ${FOWNER}:${FGROUP} ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
+    mkdir ${WORKING_DIR}/${TAR_DATE} >/dev/null 2>&1
+    chown ${FOWNER}:${FGROUP} ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
 
-    if [ "$GIVEN_MD5" == "$PROVEN_MD5" ]; then
-        # the md5sums match, so this file has uploaded completely and correctly, we
-        # won't bother noting later if it doesn't because it is expected that if the
-        # file is still uploading or such that these may not match
+    # move to the archive location 
+    mv ${FP_TAR_FILE} ${ARCHIVE_DIR}/${TAR_DATE}/
 
-        # first, make sure target date directories exists (probably does)
-        mkdir ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
-        chown ${FOWNER}:${FGROUP} ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
-        mkdir ${WORKING_DIR}/${TAR_DATE} >/dev/null 2>&1
-        chown ${FOWNER}:${FGROUP} ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
-
-        # move to the archive location 
-        mv ${FP_TAR_FILE} ${ARCHIVE_DIR}/${TAR_DATE}/
-
-        if [ $? -gt 0 ]; then
-            log "some sort of failure moving ${TAR_FILE} to archive"
-            continue
-        fi
-
-        # we've moved the tarball out, so get rid of its md5 file
-        rm -f ${MD5_FILE}
-
-        chmod 660 ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} >/dev/null 2>&1
-        # untar in the working location
-        cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=1 -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
-
-        if [ $? -gt 0 ]; then
-            # something went wrong
-            log "some sort of failure untarring ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} to ${WORKING_DIR}/${TAR_DATE}/"
-            continue
-        else
-            # success!
-            # create a file that indicates this is a fresh untar
-            echo "`date`" > ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}/.just_ingested
-            chown -R ${FOWNER}:${FGROUP} ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR} >/dev/null 2>&1
-            log "untarred|${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}"
-            # symlink to a symlink dir, making it easier to find, maybe
-            ln -s ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR} ${SYMLINK_DIR}
-        fi
+    if [ $? -gt 0 ]; then
+        log "some sort of failure moving ${TAR_FILE} to archive"
+        continue
     fi
-done
+
+    chmod 660 ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} >/dev/null 2>&1
+    # untar in the working location
+    cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=1 -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
+
+    if [ $? -gt 0 ]; then
+        # something went wrong
+        log "some sort of failure untarring ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} to ${WORKING_DIR}/${TAR_DATE}/"
+        continue
+    else
+        # success!
+        # create a file that indicates this is a fresh untar
+        echo "`date`" > ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}/.just_ingested
+         chown -R ${FOWNER}:${FGROUP} ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR} >/dev/null 2>&1
+         log "untarred|${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}"
+        # symlink to a symlink dir, making it easier to find, maybe
+        ln -s ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR} ${SYMLINK_DIR}
+    fi
+}
+
+if [ -z "$1" ]; then
+    # get list of potentially finished collector uploads in upload directory
+    # the 2013_2014 is dirty
+    for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep -v EVAL | grep '_2011-\|_2012-\|_2013-\|_2014-\|_2015-\|_2016-\|_2017-\|_2018-'`; do
+        # pre-set some variables we'll need
+        FOUND_FP_TAR_FILE=`echo ${MD5_FILE} | sed -e 's/.md5$//g'`
+
+        # calculate the md5sums
+        GIVEN_MD5=`head -1 ${MD5_FILE} | awk '{printf $1}'`
+        PROVEN_MD5=`md5sum ${FP_TAR_FILE} | awk '{printf $1}'` 2>/dev/null
+
+        if [ "$GIVEN_MD5" == "$PROVEN_MD5" ]; then
+            ingest ${FOUND_FP_TAR_FILE}
+            rm -f ${MD5_FILE}
+        fi
+    done
+else
+    if [ -f "$1" ]; then
+        GIVEN_FP_TAR=$1
+        ingest ${GIVEN_FP_TAR}
+    fi
+fi
 
 rm -f ${LOCK_FILE}
