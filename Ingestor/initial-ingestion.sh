@@ -102,6 +102,7 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
         # we've moved the tarball out, so get rid of its md5 file
         rm -f ${MD5_FILE}
 
+        chmod 660 ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} >/dev/null 2>&1
         # untar in the working location
         cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=1 -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
 
