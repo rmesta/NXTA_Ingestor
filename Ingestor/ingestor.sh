@@ -11,6 +11,8 @@ LOG_FILE=/var/log/ingestor.log
 INGESTION_SCRIPTS_DIR=/root/Collector/Ingestor/ingestion-scripts/
 ITER_START=1
 ITER_END=10
+FOWNER=ftp
+FGROUP=nexentians
 
 # log function
 log () {
@@ -67,6 +69,9 @@ ingest() {
             echo "`date`|${SCRIPT}|done|$?" >> ${TO_INGEST_DIR}/.ingestor_activity_log
         done
     done
+
+    chown -R ${FOWNER}:${FGROUP} ${TO_INGEST_DIR} >/dev/null 2>&1
+    chmod -R 770 ${TO_INGEST_DIR} >/dev/null 2>&1
 
     log "finished|${TO_INGEST_DIR}"
 }

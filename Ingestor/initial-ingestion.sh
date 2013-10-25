@@ -15,6 +15,8 @@ SYMLINK_DIR=/mnt/carbon-steel/ingested/links/
 ARCHIVE_DIR=/mnt/carbon-steel/collector_archive/
 LOCK_FILE=/tmp/.initial-ingestor.lock
 LOG_FILE=/var/log/initial-ingestor.log
+FOWNER=ftp
+FGROUP=nexentians
 
 # set up functions
 log () {
@@ -85,7 +87,9 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
 
         # first, make sure target date directories exists (probably does)
         mkdir ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
+        chown ${FOWNER}:${FGROUP} ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
         mkdir ${WORKING_DIR}/${TAR_DATE} >/dev/null 2>&1
+        chown ${FOWNER}:${FGROUP} ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
 
         # move to the archive location 
         mv ${FP_TAR_FILE} ${ARCHIVE_DIR}/${TAR_DATE}/
@@ -109,6 +113,7 @@ for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_201
             # success!
             # create a file that indicates this is a fresh untar
             echo "`date`" > ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}/.just_ingested
+            chown -R ${FOWNER}:${FGROUP} ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR} >/dev/null 2>&1
             log "untarred|${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}"
             # symlink to a symlink dir, making it easier to find, maybe
             ln -s ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR} ${SYMLINK_DIR}
