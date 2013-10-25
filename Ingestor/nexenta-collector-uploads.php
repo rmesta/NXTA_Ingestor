@@ -6,7 +6,7 @@
 # for this to work, permissions are important on upload_dir and what user apache is running as!
 # for questions email andrew.galloway@nexenta.com
 
-$upload_dir = '/mnt/ftp-incoming/upload/caselogs/';
+$upload_dir = '/mnt/carbon-steel/upload/caselogs/';
 $upload_file = $upload_dir . basename($_FILES['uploaded_file']['name']);
 
 if (strpos(basename($_FILES['uploaded_file']['name']), "collector") !== false) {

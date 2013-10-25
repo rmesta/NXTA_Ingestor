@@ -5,7 +5,7 @@
 # this script is expected to be run by cron, it will not overrun itself if run while still running
 # this script checks for just ingested files
 
-WORKING_DIR=/mnt/ftp-incoming/upload/ingestor/
+WORKING_DIR=/mnt/carbon-steel/ingested/
 LOCK_FILE=/tmp/.ingestor.lock
 LOG_FILE=/var/log/ingestor.log
 INGESTION_SCRIPTS_DIR=/root/Collector/Ingestor/ingestion-scripts/

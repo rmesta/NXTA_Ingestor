@@ -9,10 +9,10 @@
 # scripts know the newly untarred bundle has just arrived.
 
 # modify these only if you know why
-UPLOAD_DIR=/mnt/ftp-incoming/upload/caselogs/
-WORKING_DIR=/mnt/ftp-incoming/upload/ingestor/
-SYMLINK_DIR=/mnt/ftp-incoming/upload/links/
-ARCHIVE_DIR=/mnt/ftp-incoming/upload/caselogs_archive/
+UPLOAD_DIR=/mnt/carbon-steel/upload/caselogs/
+WORKING_DIR=/mnt/carbon-steel/ingested/
+SYMLINK_DIR=/mnt/carbon-steel/ingested/links/
+ARCHIVE_DIR=/mnt/carbon-steel/collector_archive/
 LOCK_FILE=/tmp/.initial-ingestor.lock
 LOG_FILE=/var/log/initial-ingestor.log
 
