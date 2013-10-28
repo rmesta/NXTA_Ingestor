@@ -18,13 +18,15 @@ LOG_FILE=/var/log/initial-ingestor.log
 FOWNER=ftp
 FGROUP=nexentians
 
+CMDARGS=$1
+
 # set up functions
 log () {
     echo "`date`|$1" >> $LOG_FILE
 }
 
 # only do this if not calling with specific tarball
-if [ ! -z "$1" ]; then
+if [[ "$CMDARGS" == "md5" ]]; then
     # verify prior run isn't still ongoing, if lock file exists just die silently
     if [ -e $LOCK_FILE ]; then
 
@@ -109,7 +111,7 @@ ingest() {
     fi
 }
 
-if [ -z "$1" ]; then
+if [[ $CMDARGS == "md5" ]]; then
     # get list of potentially finished collector uploads in upload directory
     # the 2013_2014 is dirty
     for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep -v EVAL | grep '_2011-\|_2012-\|_2013-\|_2014-\|_2015-\|_2016-\|_2017-\|_2018-'`; do
