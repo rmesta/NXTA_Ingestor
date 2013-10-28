@@ -120,7 +120,7 @@ if [[ $CMDARGS == "md5" ]]; then
 
         # calculate the md5sums
         GIVEN_MD5=`head -1 ${MD5_FILE} | awk '{printf $1}'`
-        PROVEN_MD5=`md5sum ${FP_TAR_FILE} | awk '{printf $1}'` 2>/dev/null
+        PROVEN_MD5=`md5sum ${FOUND_FP_TAR_FILE} | awk '{printf $1}'` 2>/dev/null
 
         if [ "$GIVEN_MD5" == "$PROVEN_MD5" ]; then
             ingest ${FOUND_FP_TAR_FILE}
