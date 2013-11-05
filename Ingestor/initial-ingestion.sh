@@ -127,7 +127,7 @@ ingest() {
 if [[ $CMDARGS == "md5" ]]; then
     # get list of potentially finished collector uploads in upload directory
     # the 2013_2014 is dirty
-    for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep | grep '_2011-\|_2012-\|_2013-\|_2014-\|_2015-\|_2016-\|_2017-\|_2018-'`; do
+    for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_2012-\|_2013-\|_2014-\|_2015-\|_2016-\|_2017-\|_2018-'`; do
         # pre-set some variables we'll need
         FOUND_FP_TAR_FILE=`echo ${MD5_FILE} | sed -e 's/.md5$//g'`
 
