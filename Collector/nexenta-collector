@@ -52,6 +52,7 @@ output_dir = tmpoutput + "/"                # modifiable via cmd-line, changes
 output_file = tmpoutput + ".tar.gz"         # modifiable via cmd-line, changes
                                             # here will be ignored!
 config_file = "/etc/collector.conf"         # modifiable via cmd-line
+config_file_md5 = "UNAVAIL"                 # will be the md5 of the config file used
 config_file_set = False
 get_new_config_file = False
 working_dir = tmpworkdir + "/"              # modifiable via cmd-line
@@ -68,7 +69,7 @@ machine_id = "unknown"
 hostname = "unknown"
 fqdn = "unknown.unknown"
 app_ver = "unknown"
-coll_ver = "1.1.2"
+coll_ver = "1.1.4"
 cmd_total = 0
 percent = 0
 progressbar_width = 50
@@ -687,6 +688,7 @@ def parse_config_file():
 
     global config_file
     global stuff_to_do
+    global config_file_md5
 
     try:
         fp = open(config_file)
@@ -700,6 +702,11 @@ def parse_config_file():
     except:
         print "Error reading config file:", config_file
         do_exit(1)
+
+    md5proc1 = process("md5sum " + config_file + " | awk '{printf $1}'")
+    md5proc1out = md5proc1.communicate()
+
+    config_file_md5 = md5proc1out[0].strip()
 
 class Alarm(Exception):
     pass
@@ -1209,6 +1216,7 @@ def main():
     global http_server
     global nms_set
     global nms_filename
+    global config_file_md5
 
     alarmed = False
     x = 1
@@ -1399,6 +1407,7 @@ def main():
         ofile = ofile + "Commands (init/run/success/terminate): " + \
                 str(cmd_init) + "/" + str(cmd_run) + "/" + str(cmd_success) + \
                 "/" + str(cmd_terminate) + "\n"
+        ofile = ofile + "Configuration file md5sum: " + str(config_file_md5) + "\n"
         ofile = ofile + "Appliance version: " + app_ver + "\n"
         ofile = ofile + "License key: " + license + "\n"
         ofile = ofile + "Hostname: " + hostname + " (" + fqdn + ")\n"
@@ -1419,6 +1428,9 @@ def main():
 
         f.write(ofile)
         f.close()
+
+    # copy the config file used into the output directory
+    shutil.copy2(config_file, output_dir + "/collector.conf")
 
     # tar/gzips the output directory if output_file specified
     if output_file_set == True:
@@ -1461,14 +1473,15 @@ def main():
             print "Result file: " + output_file
 
     if http_server_set == True and http_check == True:
-        upload_to_server(output_file, http_server, False, 'http')
+        upload_ret = upload_to_server(output_file, http_server, False, 'http')
 
     if ftp_server_set == True and http_check == False:
-        upload_to_server(output_file, ftp_server, False, 'ftp')
+        upload_ret = upload_to_server(output_file, ftp_server, False, 'ftp')
 
     if cleanup_output_set == True:
-        if ftp_server_set == True:
-            cleanup_output(output_file, True)
+        if http_server_set == True or ftp_server_set == True:
+            if upload_ret == True:
+                cleanup_output(output_file, True)
         else:
             cleanup_output(output_file, False)
 
