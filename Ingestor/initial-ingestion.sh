@@ -77,7 +77,16 @@ ingest() {
     fi
 
     TAR_FILE=`basename ${FP_TAR_FILE}`
-    UNTAR_DIR=`tar -tvf ${FP_TAR_FILE} | tail -n1 | awk '{print $6}' | awk -F'/' '{print $2}'`
+
+    tar -tvzf ${FP_TAR_FILE} | head -n1 | awk '{print $6}' | grpe 'var\/tmp\/c' > /dev/null
+    rc=$?
+
+    if [ $rc -eq 0 ]; then
+        UNTAR_DIR=`tar -tvf ${FP_TAR_FILE} | head -n1 | awk '{print $6}' | awk -F'/' '{print $3}'`
+    else
+        UNTAR_DIR=`tar -tvf ${FP_TAR_FILE} | tail -n1 | awk '{print $6}' | awk -F'/' '{print $2}'`
+    fi
+
     # we use the date from the bundle to prevent confusion - it is possible that due to timezone
     # differences or misconfiguration on appliance box that the date does not match this server's
     # date, and while we could just use this server's date, it would make locating the tarball
