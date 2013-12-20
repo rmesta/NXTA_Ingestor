@@ -106,7 +106,16 @@ ingest() {
     # untar in the working location, if not eval
 
     if [[ "${FP_TAR_FILE}" != *EVAL* ]]; then
-        cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=1 -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
+        NUM_STRIP=1
+
+        tar -tzvf ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} | head -n1 | grep 'var\/tmp\/c' > /dev/null
+        rc=$?
+
+        if [ $rc -eq 0 ] ; then
+            NUM_STRIP=2
+        fi
+
+        cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
 
         if [ $? -gt 0 ]; then
             # something went wrong
