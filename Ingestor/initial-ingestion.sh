@@ -78,13 +78,11 @@ ingest() {
 
     TAR_FILE=`basename ${FP_TAR_FILE}`
 
-    tar -tvzf ${FP_TAR_FILE} | head -n1 | awk '{print $6}' | grpe 'var\/tmp\/c' > /dev/null
-    rc=$?
-
-    if [ $rc -eq 0 ]; then
-        UNTAR_DIR=`tar -tvf ${FP_TAR_FILE} | head -n1 | awk '{print $6}' | awk -F'/' '{print $3}'`
-    else
+    tar -tvzf ${FP_TAR_FILE} | head -n1 | awk '{print $6}' | grep 'var\/tmp\/c' > /dev/null
+    if [ $? -gt 0 ]; then
         UNTAR_DIR=`tar -tvf ${FP_TAR_FILE} | tail -n1 | awk '{print $6}' | awk -F'/' '{print $2}'`
+    else
+        UNTAR_DIR=`tar -tvf ${FP_TAR_FILE} | tail -n1 | awk '{print $6}' | awk -F'/' '{print $3}'`
     fi
 
     # we use the date from the bundle to prevent confusion - it is possible that due to timezone
@@ -115,12 +113,10 @@ ingest() {
     # untar in the working location, if not eval
 
     if [[ "${FP_TAR_FILE}" != *EVAL* ]]; then
-        NUM_STRIP=1
-
         tar -tzvf ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} | head -n1 | grep 'var\/tmp\/c' > /dev/null
-        rc=$?
-
-        if [ $rc -eq 0 ] ; then
+        if [ $? -gt 0 ] ; then
+            NUM_STRIP=1
+        else
             NUM_STRIP=2
         fi
 
