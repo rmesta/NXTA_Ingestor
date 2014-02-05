@@ -17,16 +17,23 @@ SCRIPT_NAME="A2-check-zeusram-firmware.sh"
 main () {
     BUNDLE_DIR=$1 # use BUNDLE_DIR inside here, don't use $1, just for sanity
     WARN_FILE=${BUNDLE_DIR}/ingestor/warnings/check-zeusram-firmware
+    CHECK_FILE=${BUNDLE_DIR}/ingestor/checks/check-zeusram-firmware
 
-    if [ -f "${BUNDLE_DIR}/disk/hddisco.out" ]; then
-        grep ZeusRAM ${BUNDLE_DIR}/disk/hddisco.out
+    echo "ZeusRAM Firmware Check | zeusramfirmcheck" > ${CHECK_FILE}
+
+    if [ -f "${BUNDLE_DIR}/ingestor/links/hddisco.out" ]; then
+        grep ZeusRAM ${BUNDLE_DIR}/ingestor/links/hddisco.out
 
         if [ "$?" -eq 0 ]; then
-            grep -B2 -A4 ZeusRAM ${BUNDLE_DIR}/disk/hddisco.out | grep ^revision | grep C023 >/dev/null 2>&1
-
-            if [ "$?" -gt 0 ]; then
-                echo " - ZeusRAM's with firmware other than C023 possibly detected." > $WARN_FILE
-            fi
+            for ENTRY in `grep -B2 -A4 ZeusRAM ${BUNDLE_DIR}/ingestor/links/hddisco.out | grep ^revision | awk '{print $2}'`; do
+                FIRMWARE=$(echo $ENTRY | sed 's/^C//')
+                
+                if [ "$FIRMWARE" -gt "22" ]; then
+                    echo "<li>ZeusRAM detected with firmware >= C023 (firmware was: C${FIRMWARE})</li>" >> $CHECK_FILE
+                else
+                    echo "<li>ZeusRAM detected with firmware < C023 (firmware was: C${FIRMWARE})</li>" >> $WARN_FILE
+                fi
+            done
         fi
     fi
 }

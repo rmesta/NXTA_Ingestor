@@ -20,13 +20,18 @@ main () {
     OLDIFS=$IFS
     IFS=$'\n'
 
-    if [ -f "${BUNDLE_DIR}/zfs/zpool-list-o-all.out" ]; then
-        for LINE in `cat ${BUNDLE_DIR}/zfs/zpool-list-o-all.out | grep -v '^NAME'`; do
+    WARN_FILE=${BUNDLE_DIR}/ingestor/warnings/check-pool-utilization
+    CHECK_FILE=${BUNDLE_DIR}/ingestor/checks/check-pool-utilization
+
+    if [ -f "${BUNDLE_DIR}/ingestor/links/zpool-list-o-all.out" ]; then
+        for LINE in `cat ${BUNDLE_DIR}/ingestor/links/zpool-list-o-all.out | grep -v '^NAME'`; do
             ZPOOL=`echo ${LINE} | awk '{print $1}'`
             UTIL=`echo ${LINE} | awk '{print $3}' | sed 's/%//g'`
     
             if [ $UTIL -gt 69 ]; then
-                echo " - ${ZPOOL} is ${UTIL}% utilized." > ${BUNDLE_DIR}/ingestor/warnings/check-pool-utilization
+                echo "<li>Volume ${ZPOOL} is ${UTIL}% utilized</li>" >> ${WARN_FILE}
+            else
+                echo "<li>Volume ${ZPOOL} is ${UTIL}% utilized</li>" >> ${CHECK_FILE}
             fi
         done
     fi

@@ -17,12 +17,15 @@ SCRIPT_NAME="A2-check-dump.sh"
 main () {
     BUNDLE_DIR=$1 # use BUNDLE_DIR inside here, don't use $1, just for sanity
     WARN_FILE=${BUNDLE_DIR}/ingestor/warnings/check-dump
+    CHECK_FILE=${BUNDLE_DIR}/ingestor/checks/check-dump
+
+    echo "Dump Device Check | dumpdevicecheck" >> ${CHECK_FILE}
 
     if [ -f "${BUNDLE_DIR}/os/dumpadm.conf" ]; then
         DUMP_DEVICE=`expr length $(grep DUMPADM_DEVICE ${BUNDLE_DIR}/os/dumpadm.conf)`
 
         if [ "${DUMP_DEVICE}" -lt 16 ]; then  # Empty config line will be 15 characters
-            echo " - No dump device detected on the system." > $WARN_FILE
+            echo "<li>No dump device detected on the system.</li>" > $WARN_FILE
         fi
     fi
 }

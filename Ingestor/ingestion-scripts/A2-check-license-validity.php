@@ -17,6 +17,9 @@ $SCRIPT_NAME = "A2-check-license-validity.php";
 # exit 1 if not
 function main($BUNDLE_DIR) {
     $WARN_FILE = $BUNDLE_DIR . "/ingestor/warnings/check-license-validity";
+    $CHECK_FILE = $BUNDLE_DIR . "/ingestor/checks/check-license-validity";
+
+    file_put_contents($CHECK_FILE, "License Support Validity Check | licenseexpirycheck\n");
 
     if (is_file($BUNDLE_DIR . "/appliance/nlm.key")) {
         $license_key = file_get_contents($BUNDLE_DIR . "/appliance/nlm.key");
@@ -25,9 +28,13 @@ function main($BUNDLE_DIR) {
         $expires = expiryTimestamp($license_key);
 
         if (time() > $expires) {
-            file_put_contents($WARN_FILE, " - License key appears to be expired.\n");
-        }
-    }
+            file_put_contents($WARN_FILE, "<li>License key support length is expired</li>\n", FILE_APPEND);
+        } else {
+            $left = $expires - time();
+            $left_days = $left / 60 / 60 / 24;
+            file_put_contents($CHECK_FILE, "<li>License key support valid for ". number_format($left_days, 2) ." more days</li>\n", FILE_APPEND);
+    } else {
+        file_put_contents($WARN_FILE, "<li>Could not find nlm.key file</li>.\n", FILE_APPEND);
 
     exit(0);
 }
