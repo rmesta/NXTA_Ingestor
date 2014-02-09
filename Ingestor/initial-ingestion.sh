@@ -26,6 +26,22 @@ log () {
     echo "`date`|$1" >> $LOG_FILE
 }
 
+function is_collector_bundle()
+{
+    local IBUNDLE=$1
+
+    # exists
+    if [ -f $IBUNDLE ]; then
+        # the tail actually reduces time spent a tad
+        # the return code of this will be what the 'return' below sends back
+        tar -tzf $IBUNDLE | tail -3 | grep collector.stats >/dev/null 2>&1
+
+        return
+    fi
+
+    return 1
+}
+
 # only do this if not calling with specific tarball
 if [[ "$CMDARGS" == "md5" ]]; then
     # verify prior run isn't still ongoing, if lock file exists just die silently
@@ -152,8 +168,13 @@ if [[ $CMDARGS == "md5" ]]; then
         PROVEN_MD5=`md5sum ${FOUND_FP_TAR_FILE} | awk '{printf $1}'` 2>/dev/null
 
         if [ "$GIVEN_MD5" == "$PROVEN_MD5" ]; then
-            ingest ${FOUND_FP_TAR_FILE}
-            rm -f ${MD5_FILE}
+            is_collector_bundle ${FOUND_TP_TAR_FILE}
+            RC=$?
+
+            if [ $RC -eq 0 ]; then
+                ingest ${FOUND_FP_TAR_FILE}
+                rm -f ${MD5_FILE}
+            fi
         fi
     done
 else
