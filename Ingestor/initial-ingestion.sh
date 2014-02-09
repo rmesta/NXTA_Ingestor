@@ -15,6 +15,7 @@ SYMLINK_DIR=/mnt/carbon-steel/ingested/links/
 ARCHIVE_DIR=/mnt/carbon-steel/collector_archive/
 LOCK_FILE=/tmp/.initial-ingestor.lock
 LOG_FILE=/var/log/initial-ingestor.log
+CHECKTGZ=/root/checktgz.pl
 FOWNER=ftp
 FGROUP=nexentians
 
@@ -101,8 +102,9 @@ ingest() {
         chown ${FOWNER}:${FGROUP} ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
     fi
 
-    # move to the archive location 
-    mv ${FP_TAR_FILE} ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/
+    # move to the archive location, checking for malformed tarballs
+    zcat ${FP_TAR_FILE} | ${CHECKTGZ} | gzip > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${FP_TAR_FILE}
+    #mv ${FP_TAR_FILE} ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/
 
     if [ $? -gt 0 ]; then
         log "some sort of failure moving ${TAR_FILE} to archive"
