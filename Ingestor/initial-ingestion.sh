@@ -35,10 +35,14 @@ function is_collector_bundle()
 
     # exists
     if [ -f $IBUNDLE ]; then
-        # the return code of this will be what the 'return' below sends back
-        tar -tzf $IBUNDLE | grep collector.stats >/dev/null 2>&1
-
-        return
+        if [ ${IBUNDLE: -2} == "z2" ]; then
+            # the return code of this will be what the tar command returned
+            tar -tjf $IBUNDLE | grep collector.stats >/dev/null 2>&1
+            return
+        elif [ ${IBUNDLE: -2} == "gz" ]; then
+            tar -tzf $IBUNDLE | grep collector.stats >/dev/null 2>&1
+            return
+        fi
     fi
 
     return 1
@@ -132,14 +136,49 @@ ingest() {
 
     echo "created ${WORKING_DIR}/${TAR_DATE} if nonexistent"
 
+    echo "checking for existing archived tarball"
+    if [ -f "${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}" ]; then
+        echo "found existing tarball, comparing md5sums"
+
+        NEW_MD5=`md5sum ${FP_TAR_FILE} | awk '{printf $1}'` 2>/dev/null
+        OLD_MD5`md5sum ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE} | awk '{printf $1}'` 2>/dev/null
+
+        if [ "$NEW_MD5" == "$OLD_MD5" ]; then
+            echo "md5sums match, rm'ing new bundle and skipping to next run"
+            rm -f ${FP_TAR_FILE}
+            log "deleted|${FP_TAR_FILE}|md5sum_match"
+            return 0
+        else
+            echo "md5sums mismatch! archiving new bundle with changed name, but not ingesting"
+            # deal with bz2 or not
+            if [ ${FP_TAR_FILE: -2} == "z2" ]; then
+                bzcat ${FP_TAR_FILE} | $CHECKTGZ | bzip2 > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}
+            else
+                zcat ${FP_TAR_FILE} | $CHECKTGZ | gzip > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}
+            fi
+
+            rm -f ${FP_TAR_FILE}
+            log "archived|${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}|md5sum_mismatch"
+            return 0
+        fi
+    fi
+
     # move to the archive location, checking for malformed tarballs
     echo "attempting zcat ${FP_TAR_FILE} . ${CHECKTGZ} . gzip to ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}"
-    zcat ${FP_TAR_FILE} | ${CHECKTGZ} | gzip > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}
+
+    # deal with bz2 or not
+    if [ ${FP_TAR_FILE: -2} == "z2" ]; then
+        bzcat ${FP_TAR_FILE} | $CHECKTGZ | bzip2 > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}
+    else
+        zcat ${FP_TAR_FILE} | ${CHECKTGZ} | gzip > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}
+    fi
+
+    rm -f ${FP_TAR_FILE}
     #mv ${FP_TAR_FILE} ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/
 
     if [ $? -gt 0 ]; then
         log "some sort of failure moving ${TAR_FILE} to archive"
-        continue
+        return 1
     else
         log "archived|${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}"
     fi
@@ -150,7 +189,12 @@ ingest() {
     if [[ "${FP_TAR_FILE}" != *EVAL* ]]; then
         echo "not an EVAL ball, doing untar work"
 
-        tar -tzvf ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} | head -n1 | grep 'var\/tmp\/c' > /dev/null
+        if [ ${TAR_FILE: -2} == "z2" ]; then
+            tar -tjvf ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} | head -n1 | grep 'var\/tmp\/c' > /dev/null
+        else
+            tar -tzvf ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} | head -n1 | grep 'var\/tmp\/c' > /dev/null
+        fi
+
         if [ $? -gt 0 ] ; then
             NUM_STRIP=1
         else
@@ -160,7 +204,11 @@ ingest() {
         echo "determined NUM_STRIP to be ${NUM_STRIP}"
         echo "running: cd ${WORKING_DIR}/${TAR_DATE}/ and tar -x --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}"
 
-        cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
+        if [ ${TAR_FILE: -2} == "z2" ]; then
+            cd ${WORKING_DIR}/${TAR_DATE}/ && tar -xz --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
+        else
+            cd ${WORKING_DIR}/${TAR_DATE}/ && tar -xj --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
+        fi
 
         if [ $? -gt 0 ]; then
             # something went wrong
