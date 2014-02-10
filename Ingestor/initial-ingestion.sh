@@ -140,26 +140,37 @@ ingest() {
     if [ -f "${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}" ]; then
         echo "found existing tarball, comparing md5sums"
 
+        if [ ${FP_TAR_FILE: -2} == "z2" ]; then
+            bzcat ${FP_TAR_FILE} | $CHECKTGZ | bzip2 > ${FP_TAR_FILE}.new
+        else
+            zcat ${FP_TAR_FILE} | $CHECKTGZ | gzip > ${FP_TAR_FILE}.new
+        fi
+
+        rm -f ${FP_TAR_FILE}
+        mv ${FP_TAR_FILE}.new ${FP_TAR_FILE} >/dev/null 2>&1
+
         NEW_MD5=`md5sum ${FP_TAR_FILE} | awk '{printf $1}'` 2>/dev/null
-        OLD_MD5`md5sum ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE} | awk '{printf $1}'` 2>/dev/null
+        OLD_MD5=`md5sum ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE} | awk '{printf $1}'` 2>/dev/null
 
         if [ "$NEW_MD5" == "$OLD_MD5" ]; then
             echo "md5sums match, rm'ing new bundle and skipping to next run"
             rm -f ${FP_TAR_FILE}
             log "deleted|${FP_TAR_FILE}|md5sum_match"
-            return 0
+            if [ -d "${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}" ]; then
+                echo "found existing ingested bundle, not doing it again"
+                return 0
+            fi
         else
             echo "md5sums mismatch! archiving new bundle with changed name, but not ingesting"
             # deal with bz2 or not
-            if [ ${FP_TAR_FILE: -2} == "z2" ]; then
-                bzcat ${FP_TAR_FILE} | $CHECKTGZ | bzip2 > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}
-            else
-                zcat ${FP_TAR_FILE} | $CHECKTGZ | gzip > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}
-            fi
-
-            rm -f ${FP_TAR_FILE}
+            mv ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE} ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}.mm_md5.${OLD_MD5} >/dev/null 2>&1
+            chmod 660 ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}.mm_md5.${OLD_MD5} >/dev/null 2>&1
+            mv ${FP_TAR_FILE} ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE} >/dev/null 2>&1
             log "archived|${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}|md5sum_mismatch"
-            return 0
+            if [ -d "${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}" ]; then
+                echo "found existing ingested bundle, not going it again"
+                return 0
+            fi
         fi
     fi
 
@@ -205,14 +216,14 @@ ingest() {
         echo "running: cd ${WORKING_DIR}/${TAR_DATE}/ and tar -x --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}"
 
         if [ ${TAR_FILE: -2} == "z2" ]; then
-            cd ${WORKING_DIR}/${TAR_DATE}/ && tar -xz --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
-        else
             cd ${WORKING_DIR}/${TAR_DATE}/ && tar -xj --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
+        else
+            cd ${WORKING_DIR}/${TAR_DATE}/ && tar -xz --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
         fi
 
         if [ $? -gt 0 ]; then
             # something went wrong
-            log "some sort of failure untarring ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} to ${WORKING_DIR}/${TAR_DATE}/"
+            log "some sort of failure untarring ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} to ${WORKING_DIR}/${TAR_DATE}/|strip=${NUM_STRIP}"
             continue
         else
             # success!
@@ -232,7 +243,7 @@ if [[ $CMDARGS == "md5" ]]; then
     # get list of potentially finished collector uploads in upload directory
     # the 2013_2014 is dirty
     echo "md5 called, starting for loop"
-    for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_2012-\|_2013-\|_2014-\|_2015-\|_2016-\|_2017-\|_2018-'`; do
+    for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2010-\|_2011-\|_2012-\|_2013-\|_2014-\|_2015-\|_2016-\|_2017-\|_2018-'`; do
         # pre-set some variables we'll need
         FOUND_FP_TAR_FILE=`echo ${MD5_FILE} | sed -e 's/.md5$//g'`
 
