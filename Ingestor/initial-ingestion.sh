@@ -119,7 +119,8 @@ ingest() {
     fi
 
     # move to the archive location, checking for malformed tarballs
-    zcat ${FP_TAR_FILE} | ${CHECKTGZ} | gzip > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${FP_TAR_FILE}
+    #echo "zcat ${FP_TAR_FILE} . ${CHECKTGZ} . gzip ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}"
+    zcat ${FP_TAR_FILE} | ${CHECKTGZ} | gzip > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}
     #mv ${FP_TAR_FILE} ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/
 
     if [ $? -gt 0 ]; then
@@ -168,7 +169,7 @@ if [[ $CMDARGS == "md5" ]]; then
         PROVEN_MD5=`md5sum ${FOUND_FP_TAR_FILE} | awk '{printf $1}'` 2>/dev/null
 
         if [ "$GIVEN_MD5" == "$PROVEN_MD5" ]; then
-            is_collector_bundle ${FOUND_TP_TAR_FILE}
+            is_collector_bundle ${FOUND_FP_TAR_FILE}
             RC=$?
 
             if [ $RC -eq 0 ]; then
