@@ -32,9 +32,8 @@ function is_collector_bundle()
 
     # exists
     if [ -f $IBUNDLE ]; then
-        # the tail actually reduces time spent a tad
         # the return code of this will be what the 'return' below sends back
-        tar -tzf $IBUNDLE | tail -3 | grep collector.stats >/dev/null 2>&1
+        tar -tzf $IBUNDLE | grep collector.stats >/dev/null 2>&1
 
         return
     fi
