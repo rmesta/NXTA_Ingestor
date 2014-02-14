@@ -20,3 +20,4 @@ Warn on zfs_no_write_throttle=1 or non-zero zfs_write_limit_override
 Warn on zfs_nocacheflush
 Warn on any pools not ONLINE
 Detect and warn on SUP-664
+Warn on 3TB and larger drives in 2-way mirrors or raidz1
