@@ -7,3 +7,15 @@ Check that secondary cache is not off on any dataset when the pool has L2ARC.
 Make sure dump device is sized adequately.
 Warn on sync=disabled on any dataset.
 Warn on sync=standard or writeback cache off on zvols.
+Warn on atime=on on datasets. (worth it?)
+Implement functionality similar to volume-check to warn on non-redundant vdevs,
+      dissimilar vdev layouts, unequal disk sizes and unequal models
+Warn on excessive space usage of snapshots (threshold TBD)
+Warn on checksum=off anywhere
+Warn on compression=!off/zle if compressratio < 1.02
+Warn on mountpoint of child datasets not matching mountpoint of parent
+Warn on dedup=on and dedup ratio < 2x, make note of dedup=on.
+Warn on low zfs used/avail ratio on the root of the pool
+Warn on zfs_no_write_throttle=1 or non-zero zfs_write_limit_override
+Warn on zfs_nocacheflush
+Warn on any pools not ONLINE
