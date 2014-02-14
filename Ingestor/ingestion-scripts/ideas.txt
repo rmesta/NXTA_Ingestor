@@ -1,0 +1,9 @@
+Ideas that have not been implemented yet go in this file. Remove them as you implement them. 
+Could also assign an idea to yourself if you plan on working on it in near future.
+--------------------------------------------------------------------------------------------
+
+Check that primarycache is not off on any dataset, in general.
+Check that secondary cache is not off on any dataset when the pool has L2ARC.
+Make sure dump device is sized adequately.
+Warn on sync=disabled on any dataset.
+Warn on sync=standard or writeback cache off on zvols.
