@@ -23,3 +23,4 @@ Detect and warn on SUP-664
 Warn on 3TB and larger drives in 2-way mirrors or raidz1
 Warn on stale NMS locks (older than 1 day?)
 Warn on obviously unconfigured mailer (no smtp_server, no smtp_addresses)
+Warn on any runners that are in maintenance
