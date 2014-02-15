@@ -24,3 +24,21 @@ Warn on 3TB and larger drives in 2-way mirrors or raidz1
 Warn on stale NMS locks (older than 1 day?)
 Warn on obviously unconfigured mailer (no smtp_server, no smtp_addresses)
 Warn on any runners that are in maintenance
+Check for incorrect lm_auth version for the appliance version (correct levels TBD)
+Check for LINK UP FC events in messages that are not on boot - might indicate fabric issue
+Check for disks where not all paths are ONLINE or STANDBY
+Check for disk errors in various places
+Check scsi_vhci.conf to make sure it has nothing stupid in it.
+Check if all non-syspool disks are under mpxio
+Warn about non-standard entries in sd.conf
+Warn about SATA drives behind expanders
+Warn if any default FMA modules are not active
+Check for error counter outliers in HBA stats (sasinfo) - need to find good examples
+Warn if excessive daisy-chaining is detected in sasinfo expander -t (Tier 3 might already be shady, but depends on other conditions)
+Warn if any driver instances of the same name have non-matching amount of interrupts assigned to them
+Warn if any drivers share interrupts
+Warn if kmem_flags != 0 (performance impact)
+Warn if non-standard tuneables are present in /etc/system (need to maintain a list of commonly used ones and thresholds)
+Warn if /etc/system doesn't match ::system | mdb -k - means something was changed since last reboot
+Warn if recent dumps (<1 month old) are present in /var/crash/myhost
+Continue updating this list
