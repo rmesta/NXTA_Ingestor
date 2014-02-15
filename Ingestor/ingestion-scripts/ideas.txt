@@ -41,4 +41,5 @@ Warn if kmem_flags != 0 (performance impact)
 Warn if non-standard tuneables are present in /etc/system (need to maintain a list of commonly used ones and thresholds)
 Warn if /etc/system doesn't match ::system | mdb -k - means something was changed since last reboot
 Warn if recent dumps (<1 month old) are present in /var/crash/myhost
+Warn on out-of-date version of collector
 Continue updating this list
