@@ -195,6 +195,7 @@ ingest() {
     fi
 
     chmod 660 ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE} >/dev/null 2>&1
+    chown ${FOWNER}:${FGROUP} ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE} >/dev/null 2>&1
     # untar in the working location, if not eval
 
     if [[ "${FP_TAR_FILE}" != *EVAL* ]]; then
