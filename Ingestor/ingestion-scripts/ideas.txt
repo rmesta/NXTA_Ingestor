@@ -43,3 +43,6 @@ Warn if /etc/system doesn't match ::system | mdb -k - means something was change
 Warn if recent dumps (<1 month old) are present in /var/crash/myhost
 Warn on out-of-date version of collector
 Continue updating this list
+
+
+Warn on drives that aren't under mpxio that should be. (to prevent mismatched id's)
