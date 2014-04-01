@@ -29,3 +29,6 @@ def bytes_format(orig_bytes):
     work_bytes = round(work_bytes, 2)
     
     return str(work_bytes) + units[unit_num]
+
+def check_list_identical(lst):
+    return lst[1:] == lst[:-1]
