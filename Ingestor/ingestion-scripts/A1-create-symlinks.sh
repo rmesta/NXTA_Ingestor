@@ -22,8 +22,19 @@ main () {
 
     cd ${BUNDLE_DIR}/ingestor/links
 
+    # all .out files is easy:
     for OUT_FILE in `ls -1 -R ../../*/*.out*`; do
         ln -s ${OUT_FILE}
+    done
+
+    # /var/adm/messages is a commonly desired one, find it (depending on version of Collector could be in 2 places)
+    MDIR="os"
+    if [ -f ../../kernel/messages ]; then
+        MDIR="kernel"
+    fi
+
+    for FILE in `ls -1 ../../${MDIR}/messages*`; do
+        ln -s $FILE
     done
 }
 

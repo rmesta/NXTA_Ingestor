@@ -23,6 +23,7 @@ CMDARGS=$1
 
 # set up functions
 log () {
+    echo "logging: `date`|$1"
     echo "`date`|$1" >> $LOG_FILE
 }
 
@@ -30,13 +31,18 @@ function is_collector_bundle()
 {
     local IBUNDLE=$1
 
+    echo "running is_collector_bundle() on $IBUNDLE"
+
     # exists
     if [ -f $IBUNDLE ]; then
-        # the tail actually reduces time spent a tad
-        # the return code of this will be what the 'return' below sends back
-        tar -tzf $IBUNDLE | tail -3 | grep collector.stats >/dev/null 2>&1
-
-        return
+        if [ ${IBUNDLE: -2} == "z2" ]; then
+            # the return code of this will be what the tar command returned
+            tar -tjf $IBUNDLE | grep collector.stats >/dev/null 2>&1
+            return
+        elif [ ${IBUNDLE: -2} == "gz" ]; then
+            tar -tzf $IBUNDLE | grep collector.stats >/dev/null 2>&1
+            return
+        fi
     fi
 
     return 1
@@ -88,12 +94,16 @@ ingest() {
     FP_TAR_FILE=$1
     CE_PREFIX=""
 
+    echo "ingest() running on ${FP_TAR_FILE}"
+
     if [[ "${FP_TAR_FILE}" == *EVAL* ]]; then
         # we have a CE tarball, stick it in Community edition dir
         CE_PREFIX="community/"
     fi
 
     TAR_FILE=`basename ${FP_TAR_FILE}`
+
+    echo "determined TAR_FILE to be $TAR_FILE"
 
     tar -tvzf ${FP_TAR_FILE} | head -n1 | awk '{print $6}' | grep 'var\/tmp\/c' > /dev/null
     if [ $? -gt 0 ]; then
@@ -102,6 +112,8 @@ ingest() {
         UNTAR_DIR=`tar -tvf ${FP_TAR_FILE} | tail -n1 | awk '{print $6}' | awk -F'/' '{print $3}'`
     fi
 
+    echo "determined UNTAR_DIR to be $UNTAR_DIR"
+
     # we use the date from the bundle to prevent confusion - it is possible that due to timezone
     # differences or misconfiguration on appliance box that the date does not match this server's
     # date, and while we could just use this server's date, it would make locating the tarball
@@ -109,48 +121,120 @@ ingest() {
     # the tarball if they know its filename (which they almost always should)
     TAR_DATE=`echo ${UNTAR_DIR} | awk -F'_' '{printf $NF}' | sed 's/[^0-9.-]//g' | awk -F'.' '{printf $1}'`
 
+    echo "determined TAR_DATE to be $TAR_DATE"
+
     # first, make sure target date directories exists (probably does)
     mkdir ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE} >/dev/null 2>&1
     chown ${FOWNER}:${FGROUP} ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE} >/dev/null 2>&1
+
+    echo "created ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE} if nonexistent"
 
     if [[ "${FP_TAR_FILE}" != *EVAL* ]]; then
         mkdir ${WORKING_DIR}/${TAR_DATE} >/dev/null 2>&1
         chown ${FOWNER}:${FGROUP} ${ARCHIVE_DIR}/${TAR_DATE} >/dev/null 2>&1
     fi
 
+    echo "created ${WORKING_DIR}/${TAR_DATE} if nonexistent"
+
+    echo "checking for existing archived tarball"
+    if [ -f "${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}" ]; then
+        echo "found existing tarball, comparing md5sums"
+
+        if [ ${FP_TAR_FILE: -2} == "z2" ]; then
+            bzcat ${FP_TAR_FILE} | $CHECKTGZ | bzip2 > ${FP_TAR_FILE}.new
+        else
+            zcat ${FP_TAR_FILE} | $CHECKTGZ | gzip > ${FP_TAR_FILE}.new
+        fi
+
+        rm -f ${FP_TAR_FILE}
+        mv ${FP_TAR_FILE}.new ${FP_TAR_FILE} >/dev/null 2>&1
+
+        NEW_MD5=`md5sum ${FP_TAR_FILE} | awk '{printf $1}'` 2>/dev/null
+        OLD_MD5=`md5sum ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE} | awk '{printf $1}'` 2>/dev/null
+
+        if [ "$NEW_MD5" == "$OLD_MD5" ]; then
+            echo "md5sums match, rm'ing new bundle and skipping to next run"
+            rm -f ${FP_TAR_FILE}
+            log "deleted|${FP_TAR_FILE}|md5sum_match"
+            if [ -d "${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}" ]; then
+                echo "found existing ingested bundle, not doing it again"
+                return 0
+            fi
+        else
+            echo "md5sums mismatch! archiving new bundle with changed name, but not ingesting"
+            # deal with bz2 or not
+            mv ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE} ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}.mm_md5.${OLD_MD5} >/dev/null 2>&1
+            chmod 660 ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}.mm_md5.${OLD_MD5} >/dev/null 2>&1
+            mv ${FP_TAR_FILE} ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE} >/dev/null 2>&1
+            log "archived|${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}|md5sum_mismatch"
+            if [ -d "${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}" ]; then
+                echo "found existing ingested bundle, not going it again"
+                return 0
+            fi
+        fi
+    fi
+
     # move to the archive location, checking for malformed tarballs
-    zcat ${FP_TAR_FILE} | ${CHECKTGZ} | gzip > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${FP_TAR_FILE}
+    echo "attempting zcat ${FP_TAR_FILE} . ${CHECKTGZ} . gzip to ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}"
+
+    # deal with bz2 or not
+    if [ ${FP_TAR_FILE: -2} == "z2" ]; then
+        bzcat ${FP_TAR_FILE} | $CHECKTGZ | bzip2 > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}
+    else
+        zcat ${FP_TAR_FILE} | ${CHECKTGZ} | gzip > ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}
+    fi
+
+    rm -f ${FP_TAR_FILE}
     #mv ${FP_TAR_FILE} ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/
 
     if [ $? -gt 0 ]; then
         log "some sort of failure moving ${TAR_FILE} to archive"
-        continue
+        return 1
+    else
+        log "archived|${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE}"
     fi
 
     chmod 660 ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE} >/dev/null 2>&1
+    chown ${FOWNER}:${FGROUP} ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE}/${TAR_FILE} >/dev/null 2>&1
     # untar in the working location, if not eval
 
     if [[ "${FP_TAR_FILE}" != *EVAL* ]]; then
-        tar -tzvf ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} | head -n1 | grep 'var\/tmp\/c' > /dev/null
+        echo "not an EVAL ball, doing untar work"
+
+        if [ ${TAR_FILE: -2} == "z2" ]; then
+            tar -tjvf ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} | head -n1 | grep 'var\/tmp\/c' > /dev/null
+        else
+            tar -tzvf ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} | head -n1 | grep 'var\/tmp\/c' > /dev/null
+        fi
+
         if [ $? -gt 0 ] ; then
             NUM_STRIP=1
         else
             NUM_STRIP=2
         fi
 
-        cd ${WORKING_DIR}/${TAR_DATE}/ && tar -x --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
+        echo "determined NUM_STRIP to be ${NUM_STRIP}"
+        echo "running: cd ${WORKING_DIR}/${TAR_DATE}/ and tar -x --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}"
+
+        if [ ${TAR_FILE: -2} == "z2" ]; then
+            cd ${WORKING_DIR}/${TAR_DATE}/ && tar -xj --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
+        else
+            cd ${WORKING_DIR}/${TAR_DATE}/ && tar -xz --strip=${NUM_STRIP} -f ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE}
+        fi
 
         if [ $? -gt 0 ]; then
             # something went wrong
-            log "some sort of failure untarring ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} to ${WORKING_DIR}/${TAR_DATE}/"
+            log "some sort of failure untarring ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} to ${WORKING_DIR}/${TAR_DATE}/|strip=${NUM_STRIP}"
             continue
         else
             # success!
             # create a file that indicates this is a fresh untar
+            echo "success, adding initial .just_ingested file to untarred ingested/ dir"
             echo "`date`" > ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}/.just_ingested
              chown -R ${FOWNER}:${FGROUP} ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR} >/dev/null 2>&1
              log "untarred|${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR}"
             # symlink to a symlink dir, making it easier to find, maybe
+            echo "Creating symlink: ln -s ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR} ${SYMLINK_DIR}"
             ln -s ${WORKING_DIR}/${TAR_DATE}/${UNTAR_DIR} ${SYMLINK_DIR}
         fi
     fi
@@ -159,19 +243,26 @@ ingest() {
 if [[ $CMDARGS == "md5" ]]; then
     # get list of potentially finished collector uploads in upload directory
     # the 2013_2014 is dirty
-    for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2011-\|_2012-\|_2013-\|_2014-\|_2015-\|_2016-\|_2017-\|_2018-'`; do
+    echo "md5 called, starting for loop"
+    for MD5_FILE in `ls -1 ${UPLOAD_DIR}*.md5 | grep collector- | grep '_2010-\|_2011-\|_2012-\|_2013-\|_2014-\|_2015-\|_2016-\|_2017-\|_2018-'`; do
         # pre-set some variables we'll need
         FOUND_FP_TAR_FILE=`echo ${MD5_FILE} | sed -e 's/.md5$//g'`
+
+        echo "determined FOUND_FP_TAR_FILE to be $FOUND_FP_TAR_FILE"
 
         # calculate the md5sums
         GIVEN_MD5=`head -1 ${MD5_FILE} | awk '{printf $1}'`
         PROVEN_MD5=`md5sum ${FOUND_FP_TAR_FILE} | awk '{printf $1}'` 2>/dev/null
 
+        echo "determined GIVEN_MD5 and PROVEN_MD5 to be $GIVEN_MD5 and $PROVEN_MD5"
+
         if [ "$GIVEN_MD5" == "$PROVEN_MD5" ]; then
-            is_collector_bundle ${FOUND_TP_TAR_FILE}
+            echo "md5 matches, doing is_collector_bundle()"
+            is_collector_bundle ${FOUND_FP_TAR_FILE}
             RC=$?
 
             if [ $RC -eq 0 ]; then
+                echo "is_collector_bundle returned 0, running ingest()"
                 ingest ${FOUND_FP_TAR_FILE}
                 rm -f ${MD5_FILE}
             fi
@@ -180,6 +271,7 @@ if [[ $CMDARGS == "md5" ]]; then
 else
     if [ -f "$1" ]; then
         GIVEN_FP_TAR=$1
+        echo "Called with specific bundle, running ingest()"
         ingest ${GIVEN_FP_TAR}
     fi
 fi
