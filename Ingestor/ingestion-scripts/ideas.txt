@@ -10,6 +10,9 @@ Warn on sync=standard or writeback cache off on zvols.
 Warn on atime=on on datasets. (worth it?)
 Implement functionality similar to volume-check to warn on non-redundant vdevs,
       dissimilar vdev layouts, unequal disk sizes and unequal models
+Implement extraction of fhardware and firmware versions to allow for quick identification of 
+      possible root causes and future comparision against HSL
+Implement analytics/correlate FMA data with disk issues ( and other hardware issues )
 Warn on excessive space usage of snapshots (threshold TBD)
 Warn on checksum=off anywhere
 Warn on compression=!off/zle if compressratio < 1.02
@@ -42,6 +45,7 @@ Warn if non-standard tuneables are present in /etc/system (need to maintain a li
 Warn if /etc/system doesn't match ::system | mdb -k - means something was changed since last reboot
 Warn if recent dumps (<1 month old) are present in /var/crash/myhost
 Warn on out-of-date version of collector
+
 Continue updating this list
 
 
