@@ -105,11 +105,11 @@ ingest() {
 
     echo "determined TAR_FILE to be $TAR_FILE"
 
-    tar -tvzf ${FP_TAR_FILE} | head -n1 | awk '{print $6}' | grep 'var\/tmp\/c' > /dev/null
+    tar -tvzf ${FP_TAR_FILE} 2>/dev/null | head -n1 | awk '{print $6}' | sed 's/^\///' | grep 'var\/tmp\/c' > /dev/null
     if [ $? -gt 0 ]; then
-        UNTAR_DIR=`tar -tvf ${FP_TAR_FILE} | tail -n1 | awk '{print $6}' | awk -F'/' '{print $2}'`
+        UNTAR_DIR=`tar -tvzf ${FP_TAR_FILE} 2>/dev/null | head -n1 | awk '{print $6}' | sed 's/^\///' | awk -F'/' '{print $2}'`
     else
-        UNTAR_DIR=`tar -tvf ${FP_TAR_FILE} | tail -n1 | awk '{print $6}' | awk -F'/' '{print $3}'`
+        UNTAR_DIR=`tar -tvzf ${FP_TAR_FILE} 2>/dev/null | head -n1 | awk '{print $6}' | sed 's/^\///' | awk -F'/' '{print $3}'`
     fi
 
     echo "determined UNTAR_DIR to be $UNTAR_DIR"
@@ -202,9 +202,9 @@ ingest() {
         echo "not an EVAL ball, doing untar work"
 
         if [ ${TAR_FILE: -2} == "z2" ]; then
-            tar -tjvf ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} | head -n1 | grep 'var\/tmp\/c' > /dev/null
+            tar -tjvf ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} 2>/dev/null | head -n1 | grep 'var\/tmp\/c' > /dev/null
         else
-            tar -tzvf ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} | head -n1 | grep 'var\/tmp\/c' > /dev/null
+            tar -tzvf ${ARCHIVE_DIR}/${TAR_DATE}/${TAR_FILE} 2>/dev/null | head -n1 | grep 'var\/tmp\/c' > /dev/null
         fi
 
         if [ $? -gt 0 ] ; then
