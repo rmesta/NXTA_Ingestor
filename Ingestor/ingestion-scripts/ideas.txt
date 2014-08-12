@@ -50,3 +50,4 @@ Continue updating this list
 
 
 Warn on drives that aren't under mpxio that should be. (to prevent mismatched id's)
+Warn when DataOn plugin is installed - it causes latency spikes roughly every 10 minutes because it runs "zpool import -D" and "zpool import -Fn" for no good reason, and servermain.py has a memory leak in it.
