@@ -35,6 +35,16 @@ function is_collector_bundle()
 
     # exists
     if [ -f $IBUNDLE ]; then
+        # GPG decryption
+        gpg -d ${IBUNDLE} > ${IBUNDLE}.unencrypted
+        if [ $? -ne 0 ]; then
+            # was not GPG encrypted or we lack the key to decrypt it here, seemingly; remove any crap we may have made
+            rm -f ${IBUNDLE}.unencrypted >/dev/null 2>&1
+        else
+            # we appear to have decrypted it
+            mv ${IBUNDLE}.unencrypted ${IBUNDLE} >/dev/null 2>&1
+        fi
+
         if [ ${IBUNDLE: -2} == "z2" ]; then
             # the return code of this will be what the tar command returned
             tar -tjf $IBUNDLE | grep collector.stats >/dev/null 2>&1
@@ -96,6 +106,11 @@ ingest() {
 
     echo "ingest() running on ${FP_TAR_FILE}"
 
+    if [ -z "${FP_TAR_FILE}" ]; then
+        echo "failure, FP_TAR_FILE unset"
+        return 1
+    fi
+
     if [[ "${FP_TAR_FILE}" == *EVAL* ]]; then
         # we have a CE tarball, stick it in Community edition dir
         CE_PREFIX="community/"
@@ -105,7 +120,12 @@ ingest() {
 
     echo "determined TAR_FILE to be $TAR_FILE"
 
-    tar -tvzf ${FP_TAR_FILE} 2>/dev/null | head -n1 | awk '{print $6}' | sed 's/^\///' | grep 'var\/tmp\/c' > /dev/null
+    if [ -z "${TAR_FILE}" ]; then
+        echo "failure, TAR_FILE unset"
+        return 1
+    fi
+
+    tar -tvzf ${FP_TAR_FILE} 2>/dev/null | grep collector.stats | head -n1 | awk '{print $6}' | sed 's/^\///' | grep 'var\/tmp\/c' > /dev/null
     if [ $? -gt 0 ]; then
         UNTAR_DIR=`tar -tvzf ${FP_TAR_FILE} 2>/dev/null | head -n1 | awk '{print $6}' | sed 's/^\///' | awk -F'/' '{print $2}'`
     else
@@ -113,6 +133,11 @@ ingest() {
     fi
 
     echo "determined UNTAR_DIR to be $UNTAR_DIR"
+
+    if [ -z "${UNTAR_DIR}" ]; then
+        echo "couldn't determine, UNTAR_DIR unset"
+        return 1
+    fi
 
     # we use the date from the bundle to prevent confusion - it is possible that due to timezone
     # differences or misconfiguration on appliance box that the date does not match this server's
@@ -122,6 +147,11 @@ ingest() {
     TAR_DATE=`echo ${UNTAR_DIR} | awk -F'_' '{printf $NF}' | sed 's/[^0-9.-]//g' | awk -F'.' '{printf $1}'`
 
     echo "determined TAR_DATE to be $TAR_DATE"
+
+    if [ -z "${TAR_DATE}" ]; then
+        echo "couldn't determine, TAR_DATE unset"
+        return 1
+    fi
 
     # first, make sure target date directories exists (probably does)
     mkdir ${ARCHIVE_DIR}/${CE_PREFIX}${TAR_DATE} >/dev/null 2>&1
