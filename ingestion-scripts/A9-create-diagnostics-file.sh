@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-
-# Author: andrew.galloway@nexenta.com
-# Created On: 2013-09-26
-# Last Updated On: 2013-09-26
+#
+# Author:	andrew.galloway@nexenta.com
+# Created On:	2013-09-26
+# Last Updated:	2016-11-09
 # Description:
 #   creates and initially seeds a summary/diagnostics file similar to old support bundle 'diag' file
 
+#
 # include generic functions file
-source /root/Collector/Ingestor/ingestion-scripts/functions.sh
+#
+[ -z "${NXTA_INGESTOR}" ] && { echo "NXTA_INGESTOR var MUST be set !"; exit 1; }
+source ${NXTA_INGESTOR}/ingestion-scripts/functions.sh
 
 # name of this script - could be filename, or something unique people will recognize
 SCRIPT_NAME="A9-create-diagnostics-file.sh"

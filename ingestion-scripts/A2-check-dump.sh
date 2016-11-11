@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-
-# Author: kirill.davydychev@nexenta.com
-# Created On: 2013-09-30
-# Last Updated On: 2013-09-30
+#
+# Author:	kirill.davydychev@nexenta.com
+# Created On:	2013-09-30
+# Last Updated:	2016-11-09
 # Description:
 #   dump check
 
+#
 # include generic functions file
-source /root/Collector/Ingestor/ingestion-scripts/functions.sh
+#
+[ -z "${NXTA_INGESTOR}" ] && { echo "NXTA_INGESTOR var MUST be set !"; exit 1; }
+source ${NXTA_INGESTOR}/ingestion-scripts/functions.sh
 
 # name of this script - could be filename, or something unique people will recognize
 SCRIPT_NAME="A2-check-dump.sh"

@@ -8,7 +8,8 @@
 #   checks if license is expired or not
 
 # include generic functions file
-include '/root/Collector/Ingestor/ingestion-scripts/functions.php';
+#include '/root/Collector/Ingestor/ingestion-scripts/functions.php';
+include '/home/rmesta/ws/src/Ingestor/Ingestor/ingestion-scripts/functions.php';
 
 # name of this script - could be filename, or something unique people will recognize
 $SCRIPT_NAME = "A2-check-license-validity.php";

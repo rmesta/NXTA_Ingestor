@@ -1,0 +1,17 @@
+#
+# Environment Configuration
+#
+# NOTE: All legacy and NextGen scripts rely on
+#	this environment being set correctly.
+
+# Uncomment the next line when if deploying at last location
+#NXTA_INGESTOR=/root/Collector/Ingestor/ingestion-scripts/
+
+NXTA_INGESTOR="/home/rmesta/ws/src/Support/Tools/merge/Ingestion"
+export NXTA_INGESTOR
+
+NXTA_LEGACY="${NXTA_INGESTOR}/legacy"
+export NXTA_LEGACY
+
+PYTHONPATH="${NXTA_INGESTOR}/NextGen"
+export PYTHONPATH

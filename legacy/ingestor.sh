@@ -2,13 +2,17 @@
 
 # Author: andrew.galloway@nexenta.com - contact with questions
 
-# this script is expected to be run by cron, it will not overrun itself if run while still running
+# this script is expected to be run by cron; it
+# won't overrun itself if run while still running
 # this script checks for just ingested files
+
+source ../.nxrc
+[ -z "${NXTA_INGESTOR}" ] && { echo "NXTA_INGESTOR var MUST be set !"; exit 1; }
 
 WORKING_DIR=/mnt/carbon-steel/ingested/
 LOCK_FILE=/tmp/.ingestor.lock
 LOG_FILE=/var/log/ingestor.log
-INGESTION_SCRIPTS_DIR=/root/Collector/Ingestor/ingestion-scripts/
+INGESTION_SCRIPTS_DIR=${NXTA_INGESTOR}/ingestion-scripts/
 ITER_START=1
 ITER_END=10
 FOWNER=ftp

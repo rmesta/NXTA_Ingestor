@@ -1,0 +1,190 @@
+
+
+#
+# reset testing environment
+#
+root@ingestor:/home/rmesta/ws/src/Support/Tools/merge/Ingestion# rm -rf /mnt/carbon-steel/ingested/2016-09-11/collector-G200-1B73507788-1CE4H6EBB-IMPKJP_stor-nas03a_2016-09-11.03-00-12EDT/
+
+root@ingestor:/home/rmesta/ws/src/Support/Tools/merge/Ingestion# mv /mnt/carbon-steel/collector_archive/2016-09-11/collector-G200-1B73507788-1CE4H6EBB-IMPKJP_stor-nas03a_2016-09-11.03-00-12EDT.8000.tar.gz /mnt/carbon-steel/upload/caselogs/.
+
+#
+# make sure needed environment
+# variables are set (.nxrc)
+#
+root@ingestor:/home/rmesta/ws/src/Support/Tools/merge/Ingestion/NextGen/nxing#
+env | egrep '(PYTHONPATH|NXTA_)'
+NXTA_INGESTOR=/home/rmesta/ws/src/Support/Tools/merge/Ingestion
+NXTA_LEGACY=/home/rmesta/ws/src/Support/Tools/merge/Ingestion/legacy
+PYTHONPATH=/home/rmesta/ws/src/Support/Tools/merge/Ingestion/NextGen
+
+#
+# Ingest the collector bundle
+#
+root@ingestor:/home/rmesta/ws/src/Support/Tools/merge/Ingestion/NextGen/nxing#
+./NZA_Ingestor.py --ingest /mnt/carbon-steel/upload/caselogs/collector-G200-1B7
+3507788-1CE4H6EBB-IMPKJP_stor-nas03a_2016-09-11.03-00-12EDT.8000.tar.gz
+Ingesting:     "/mnt/carbon-steel/upload/caselogs/collector-G200-1B73507788-1CE4H6EBB-IMPKJP_stor-nas03a_2016-09-11.03-00-12EDT.8000.tar.gz"
+tar: Removing leading `/' from member names
+Ingesting:     collector-G200-1B73507788-1CE4H6EBB-IMPKJP_stor-nas03a_2016-09-11.03-00-12EDT
+
+Ingestion Successful !
+root@ingestor:/home/rmesta/ws/src/Support/Tools/merge/Ingestion/NextGen/nxing#
+
+
+#
+# On a separate window:
+# 1) check env vars are set
+# 2) fire nxcat against the ingested bundle
+#
+root@ingestor:/home/rmesta/ws/src/Support/Tools/merge/Ingestion/NextGen/nxcat#
+env | egrep '(PYTHONPATH|NXTA_)'
+NXTA_INGESTOR=/home/rmesta/ws/src/Support/Tools/merge/Ingestion
+NXTA_LEGACY=/home/rmesta/ws/src/Support/Tools/merge/Ingestion/legacy
+PYTHONPATH=/home/rmesta/ws/src/Support/Tools/merge/Ingestion/NextGen
+
+root@ingestor:/home/rmesta/ws/src/Support/Tools/merge/Ingestion/NextGen/nxcat#
+./nxcat.py --path /mnt/carbon-steel/ingested/2016-09-11/collector-G200-1B73507788-1CE4H6EBB-IMPKJP_stor-nas03a_2016-09-11.03-00-12EDT/
+
+=== collector.stats ==================================================
+
+NS Version:	v4.0.4-FP5
+License:	G200-1B73507788-1CE4H6EBB-IMPKJP
+Machine ID:	1CE4H6EBB
+Customer:	psu
+Up Time:	94 day(s)
+BIOS Info:	Dell Inc. 2.4.3 07/09/2014
+CPU Info:	2x Intel(R) Xeon(R) CPU E5-2643 v2
+MoBo Vendor:	Dell Inc. PowerEdge R720
+BMC Info:	IPMI 2.0 (KCS: Keyboard Controller Style)
+RAM:		384.0 GB
+Dump Device:	/dev/zvol/dsk/syspool/dump     ( ?? GB )
+max_cstates:	1
+
+=== Clustering Info ==================================================
+
+Clustered:		True
+Cluster Name:		Home-Cluster
+Secondary Node Info
+    Hostname:		stor-nas03a
+    Machine ID:		AF77AC8AA
+    Mnt Point:		/volumes/home
+    ZPool GUID:		11620947495457011982
+Primary Node Info
+    Hostname:		stor-nas03b
+    Machine ID:		1CE4H6EBB
+
+=== ZPools Info ======================================================
+
+----------------------------------------------------------------------
+Pool:		home
+Health:		DEGRADED
+
+vdev:    raidz2-2
+    Total Devices: ( 10 )
+        c4t5000c500629eb44fd0        ( jbod:1, slot:4 )
+vdev:    raidz2-1
+    Total Devices: ( 10 )
+        c4t5000c500629fafc7d0        ( jbod:1, slot:38 )
+        c4t5000c500629fa11bd0        ( jbod:1, slot:20 )
+        c4t5000c500629eb4b3d0        ( jbod:1, slot:50 )
+        c4t5000c500629fb8ebd0        ( jbod:1, slot:26 )
+        c4t5000c500629ed4dfd0        ( jbod:1, slot:44 )
+        c4t5000c500629fc123d0        ( jbod:1, slot:56 )
+        c4t5000c500629f9607d0        ( jbod:1, slot:14 )
+        c4t5000c500628285afd0        ( jbod:1, slot:2 )
+        c4t5000c500629f1237d0        ( jbod:1, slot:8 )
+        c4t5000c500629f9f8fd0        ( jbod:1, slot:32 )
+vdev:    raidz2-0
+    Total Devices: ( 10 )
+        c4t5000c500629f97bfd0        ( jbod:1, slot:13 )
+        c4t5000c50062824297d0        ( jbod:1, slot:37 )
+        c4t5000c5006281d50fd0        ( jbod:1, slot:31 )
+        c4t5000c500629eb197d0        ( jbod:1, slot:55 )
+        c4t5000c5006280578fd0        ( jbod:1, slot:1 )
+        c4t5000c500629fb9e3d0        ( jbod:1, slot:7 )
+        c4t5000c5006280939bd0        ( jbod:1, slot:43 )
+        c4t5000c500629fa8a7d0        ( jbod:1, slot:49 )
+        c4t5000c500629ed7cbd0        ( jbod:1, slot:25 )
+        c4t5000c500629f15c7d0        ( jbod:1, slot:19 )
+vdev:    cache
+    Total Devices: ( 2 )
+        c4t5001e820027e8424d0        ( jbod:1, slot:6 )
+        c4t5001e820027e88fcd0        ( jbod:1, slot:9 )
+vdev:    logs
+    Total Devices: ( 2 )
+        c4t5000a720300938a7d0        ( jbod:1, slot:3 )
+        c4t5000a720300a154bd0        ( jbod:1, slot:12 )
+
+Active Boot:    -
+Total:		3.25T / 181T
+Capacity:	1%
+
+----------------------------------------------------------------------
+Pool:		syspool
+Health:		ONLINE
+Active Boot:	syspool/rootfs-nmu-008
+Total:		204G / 928G
+Capacity:	21%
+
+=== JBOD Enclosure Info ==============================================
+
+                                                            Total  Busy
+     JBOD      Vendor         Model         Serial Number   Slots  Slots
+  ----------  --------  ----------------  ----------------  -----  -----
+      jbod:1      Dell      Dell-MD3060e  50080e5207e05000    60    60
+
+=== hddisco Info =====================================================
+
+  Cnt   Vendor         Model          F/W     mpxio   pths   SSD    SMART
+  ---  --------  ----------------    -----    -----   ----   ---    -----
+    2      STEC           ZeusRAM     C023      on      2    yes     off
+    1      DELL        PERC H710P     3.13     off      1     no     off
+    2    Pliant            LB806R     D323      on      2    yes     off
+    1   SEAGATE      ST4000NM0023     GS0F      on      2     no      on
+    1   SEAGATE      ST4000NM0023     GS10      on      2     no      on
+   54   SEAGATE      ST4000NM0023     GS0D      on      2     no     off
+
+=== Network Info =====================================================
+
+  Link       Class  State  MTU  Speed  Duplex       IPv4            Mask
+---------    -----  -----  ---  -----  ------     --------        --------
+aggr1         aggr   up   1500                     10.194.1.9     255.255.0.0
+     ixgbe3   phys   up   1500  10000   full
+     ixgbe2   phys   up   1500  10000   full
+
+igb0          phys   up   1500                    192.168.0.1  255.255.255.0
+       igb0   phys   up   1500   1000   full
+
+
+=== nms Faults =======================================================
+
+Summary: The appliance has 5 outstanding faults, in addition 1 runner is in
+	 maintenance state - run 'show appliance runners' for details.
+CRITICAL nms-check
+    Count:	1
+    Fault:	10
+    Message:	Failed to synchronize time using '10.192.0.1'
+    Time:	Tue Sep  6 10:18:03 2016
+
+CRITICAL nms-licensecheck
+    Count:	1
+    Fault:	100
+    Message:	Software not registered (1)
+    Time:	Thu May  5 13:36:02 2016
+
+CRITICAL nms-fmacheck
+    Count:	1
+    Fault:	2
+    Message:	FMA Module: zfs-diagnosis, UUID: f55455f2-3977-406c-c695-efd2cb3ef13e
+    Time:	Thu Aug 25 14:41:14 2016
+
+
+=== fma Faults (30 days) =============================================
+
+
+=== Appliance Services ===============================================
+
+ Service   Export Cnt       Protocols      nfsd thrds     lockd thrds
+ -------   ----------    ---------------  ------------   -------------
+   NFS          4       nfsv2,nfsv3,nfsv4     2048            2048
+root@ingestor:/home/rmesta/ws/src/Support/Tools/merge/Ingestion/NextGen/nxcat#

@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-
-# Author: andrew.galloway@nexenta.com
-# Created On: 2013-09-26
-# Last Updated On: 2013-09-26
+#
+# Author:	andrew.galloway@nexenta.com
+# Created On:	2013-09-26
+# Last Updated:	2016-11-09
 # Description:
 #   checks if the pool utilization is greater than 70% on any pool and reports
 #   that if it is
 
+#
 # include generic functions file
-source /root/Collector/Ingestor/ingestion-scripts/functions.sh
+#
+[ -z "${NXTA_INGESTOR}" ] && { echo "NXTA_INGESTOR var MUST be set !"; exit 1; }
+source ${NXTA_INGESTOR}/ingestion-scripts/functions.sh
 
 # name of this script - could be filename, or something unique people will recognize
 SCRIPT_NAME="A2-check-pool-utilization.sh"

@@ -6,15 +6,18 @@
 import os
 import re
 
+
 class Path(Exception):
     pass
 
-def verify_bundle_directory(caller, d):
+
+def verify_bundle_directory(caller, directory):
     if os.path.isdir(directory):
         return True
     else:
         print '%s: %s is not a valid directory' % (script_name, directory)
         return False
+
 
 def check_path(f):
     """
@@ -28,9 +31,11 @@ def check_path(f):
     if not os.path.exists(f):
         raise Path('%s does not exist' % f)
 
+
 def append_file(filename, message):
     with open(filename, "a") as af:
         af.write(message)
+
 
 def bytes_format(orig_bytes):
 
@@ -43,11 +48,13 @@ def bytes_format(orig_bytes):
         unit_num = unit_num + 1
 
     work_bytes = round(work_bytes, 2)
-    
+
     return str(work_bytes) + units[unit_num]
+
 
 def check_list_identical(lst):
     return lst[1:] == lst[:-1]
+
 
 def zfs_get(p):
     """
@@ -77,17 +84,25 @@ def zfs_get(p):
                 continue
 
             # If this is a new file system add a new key
-            if not zfs.has_key(name):
+            if name not in zfs:
                 zfs[name] = {}
 
             # Add property, value, source
             # Note values are not cast to a specific type
+
+            if property == "compressratio":
+                patt = '(\d+.\d+)x$'
+                mp = re.match(patt, value)
+                if mp:
+                    value = mp.group(1)
+
             zfs[name][property] = {
-                'value' : value,
-                'source' : source
+                'value': value,
+                'source': source
             }
 
     return zfs
+
 
 def kstat(p):
     """
@@ -139,12 +154,13 @@ def kstat(p):
 
             # All but last key should be a dict
             for k in keys[:-1]:
-                if not current.has_key(k):
+                if k not in current:
                     current[k] = {}
                 current = current[k]
             current[keys[-1]] = v
 
     return kstat
+
 
 def svcs(p):
     """
@@ -164,10 +180,11 @@ def svcs(p):
     # Open file with universal newline support
     with open(f, 'rU') as fh:
         for line in fh.readlines()[1:]:
-            state, stime, fmri = [ x.strip() for x in line.split() ]
+            state, stime, fmri = [x.strip() for x in line.split()]
             svcs.append([state, stime, fmri])
 
     return svcs
+
 
 def zpool_list(p):
     """
@@ -189,7 +206,7 @@ def zpool_list(p):
         lines = fh.readlines()
 
         # Read column headers
-        head = [ x.lower() for x in lines[0].split() ]
+        head = [x.lower() for x in lines[0].split()]
 
         # Parse each zpool|zfs
         for line in lines[1:]:
@@ -203,6 +220,7 @@ def zpool_list(p):
 
     return zlist
 
+
 def hddisco(p):
     """
     Parse 'hddisco' output.
@@ -214,36 +232,37 @@ def hddisco(p):
     """
     # Input file
     f = '/'.join([p, 'disk/hddisco.out'])
-    check_path(f)
 
     disco = {}
 
     # Open file with universal newline support
     with open(f, 'rU') as fh:
         for line in fh.readlines():
-            # If the line begins with '=' set current device id
+            # If the line begins with '=' set current devid
             if line.startswith('='):
-                current_id = line.lstrip('=').strip()
-                disco[current_id] = {'P' : {}}
-
+                devid = line.lstrip('=').strip()
+                disco[devid] = {'P': {}}
+                path = 0
             # Parse path information
             elif line.startswith('P'):
-                # Ignore start and end lines
-                if 'start' in line or 'end' in line:
-                    continue
                 try:
-                    p, k, v = [x.strip() for x in line.split()]
-                # The value field is empty sometimes
-                except ValueError:
-                    continue
-                disco[current_id]['P'][k] = v
-
+                    k, v = [x.strip() for x in line.split()[1:]]
+                except:
+                    # Increment path count
+                    if line.startswith("P end"):
+                        path += 1
+                else:
+                    # sd driver doesn't print P start/end
+                    if path not in disco[devid]["P"]:
+                        disco[devid]["P"][path] = {}
+                    disco[devid]["P"][path][k] = v
             # Split line on spaces into key/value pairs
             else:
                 k, v = [x.strip() for x in line.split(None, 1)]
-                disco[current_id][k] = v
+                disco[devid][k] = v
 
     return disco
+
 
 def mpathadm(p):
     """
@@ -274,6 +293,7 @@ def mpathadm(p):
 
     return lu
 
+
 def start(p):
     """
     Return the collector start date.
@@ -295,6 +315,7 @@ def start(p):
                 break
 
     return start
+
 
 def end(p):
     """
@@ -318,6 +339,7 @@ def end(p):
 
     return end
 
+
 def version(p):
     """
     Return the appliance version.
@@ -340,6 +362,7 @@ def version(p):
 
     return version
 
+
 def machinesig(p):
     """
     Return the machine signature.
@@ -356,6 +379,7 @@ def machinesig(p):
         machinesig = None
 
     return machinesig
+
 
 def license(p):
     """
@@ -379,6 +403,7 @@ def license(p):
 
     return license
 
+
 def sesctl(p):
     """
     Parse the output of 'sesctl list <enclosure>'.
@@ -389,7 +414,9 @@ def sesctl(p):
         ses (dict): Parse sesctl
     """
     # Input file
-    f = '/'.join([p, 'enclosures/for-enclosure-in-sesctl-list-grep-v-enclosure_id-awk-print-1-do-echo-enclosure-sesctl-list-enclosure-done.out'])
+    l1 = 'enclosures/for-enclosure-in-sesctl-list-grep-v-enclosure_'
+    l2 = 'id-awk-print-1-do-echo-enclosure-sesctl-list-enclosure-done.out'
+    f = '/'.join([p, l1 + l2])
     check_path(f)
 
     ses = {}
@@ -432,12 +459,12 @@ def sesctl(p):
 
                 # The first entry is the element-type
                 e_type = values[0]
-                if not ses[encl_id].has_key(e_type):
+                if e_type not in ses[encl_id]:
                     ses[encl_id][e_type] = {}
 
                 # The second entry is the element-num
                 e_num = values[1]
-                if not ses[encl_id][e_type].has_key(e_num):
+                if e_num not in ses[encl_id][e_type]:
                     ses[encl_id][e_type][e_num] = {}
 
                 # Add key/value pairs
@@ -446,6 +473,7 @@ def sesctl(p):
                     ses[encl_id][e_type][e_num][head[i]] = values[i]
 
     return ses
+
 
 def zpool_status(p):
     """
@@ -484,8 +512,10 @@ def zpool_status(p):
             return None
 
         for line in lines:
-            # Ignore empty lines and lines that start with dashes or underscores
-            if empty.search(line) or underscore.search(line) or dash.search(line):
+            #Ignore empty lines and lines that start with dashes or underscores
+            if empty.search(line) or        \
+               underscore.search(line) or   \
+               dash.search(line):
                 continue
 
             # Lines containing ':' define a new section
@@ -516,6 +546,9 @@ def zpool_status(p):
                 # Parse status
                 elif 'status:' in line:
                     current = 'status'
+                    if current not in status[pool]:
+                        status[pool][current] = []
+                    status[pool][current].append(line.split(':')[1].strip())
 
                 # Parse action
                 elif 'action:' in line:
@@ -524,6 +557,9 @@ def zpool_status(p):
                 # Parse scan
                 elif 'scan:' in line:
                     current = 'scan'
+                    if current not in status[pool]:
+                        status[pool][current] = []
+                    status[pool][current].append(line.split(':')[1].strip())
 
                 # Parse config
                 elif 'config:' in line:
@@ -545,18 +581,23 @@ def zpool_status(p):
 
             else:
                 # Ignore these fields
-                if current in [ 'status', 'action', 'scan', 'errors' ]:
+                #if current in ['status', 'action', 'scan', 'errors']:
+                #    continue
+                if current in ['action', 'errors']:
+                    continue
+
+                if current == 'status' or current == 'scan':
+                    status[pool][current].append(line.strip())
                     continue
 
                 status[pool][current].append(line)
-
 
     for pool in status:
         # Parse config
         status[pool]['config'] = _parse_zpool_config(status[pool]['config'])
 
         # Parse dedup table if dedup is enabled
-        if status[pool].has_key('dedup') and status[pool]['dedup']:
+        if 'dedup' in status[pool] and status[pool]['dedup']:
             status[pool]['dedup'] = _parse_zpool_dedup(status[pool]['dedup'])
 
         # Ignoring errors for now
@@ -570,6 +611,7 @@ def zpool_status(p):
         #    status[pool]['scan'] = parse_scan(status[pool]['scan'])
 
     return status
+
 
 def _parse_zpool_config(lines):
     """
@@ -634,25 +676,26 @@ def _parse_zpool_config(lines):
         # This line is a child of the previous (indent)
         elif indent > i_level:
             stack[-1]['vdev'] = {}
-            stack[-1]['vdev'][name] = status
-            stack.append(stack[-1]['vdev'][name])
+            stack[-1]['vdev'][name.lower()] = status
+            stack.append(stack[-1]['vdev'][name.lower()])
             i_level = indent
 
         # This line is a sibling of the previous
         elif indent == i_level:
             stack.pop()
-            stack[-1]['vdev'][name] = status
-            stack.append(stack[-1]['vdev'][name])
+            stack[-1]['vdev'][name.lower()] = status
+            stack.append(stack[-1]['vdev'][name.lower()])
 
         # This line is not related to the previous (dedent)
         elif indent < i_level:
             while indent <= i_level:
                 stack.pop()
                 i_level -= 1
-            stack[-1]['vdev'][name] = status
-            stack.append(stack[-1]['vdev'][name])
+            stack[-1]['vdev'][name.lower()] = status
+            stack.append(stack[-1]['vdev'][name.lower()])
 
     return config
+
 
 def _parse_zpool_dedup(lines):
     """
@@ -674,38 +717,51 @@ def _parse_zpool_dedup(lines):
     dedup['ddt'] = {}
     for line in lines:
         # Ignore headings
-        if line.split() == [ 'bucket', 'allocated', 'referenced' ]:
+        if line.split() == ['bucket', 'allocated', 'referenced']:
             continue
 
         # Ignore headings
-        if line.split() == [ 'refcnt', 'blocks', 'LSIZE', 'PSIZE', 'DSIZE', 'blocks', 'LSIZE', 'PSIZE', 'DSIZE' ]:
+        headings = ['refcnt',   \
+                    'blocks',   \
+                    'LSIZE',    \
+                    'PSIZE',    \
+                    'DSIZE',    \
+                    'blocks',   \
+                    'LSIZE',    \
+                    'PSIZE',    \
+                    'DSIZE']
+        if line.split() == headings:
             continue
 
-        refcnt, a_blocks, a_lsize, a_psize, a_dsize, r_blocks, r_lsize, r_psize, r_dsize = line.strip().split()
+        refcnt, a_blocks, a_lsize, a_psize, a_dsize, r_blocks, r_lsize, \
+            r_psize, r_dsize = line.strip().split()
         dedup['ddt'][refcnt.lower()] = {
-            'allocated' : {
-                'blocks' : a_blocks,
-                'lsize' : a_lsize,
-                'psize' : a_psize,
-                'dsize' : a_dsize
+            'allocated': {
+                'blocks': a_blocks,
+                'lsize': a_lsize,
+                'psize': a_psize,
+                'dsize': a_dsize
             },
-            'referenced' : {
-                'blocks' : r_blocks,
-                'lsize' : r_lsize,
-                'psize' : r_psize,
-                'dsize' : r_dsize
+            'referenced': {
+                'blocks': r_blocks,
+                'lsize': r_lsize,
+                'psize': r_psize,
+                'dsize': r_dsize
             }
         }
 
     return dedup
 
+
 def _parse_zpool_scan(s):
     pass
+
 
 def _parse_zpool_errors(e):
     pass
 
-def _indentation(s, spaces=2):
+
+def indentation(s, spaces=2):
     """
     Return identation level
 
@@ -722,3 +778,140 @@ def _indentation(s, spaces=2):
         else:
             return i / spaces
     return i / spaces
+
+
+def read_raw_txt(rawfile):
+    rawlines = []
+    with open(rawfile, 'r') as f:
+        for l in f.readlines():
+            pattern = '^#.*$'           # skip comment lines
+            if re.match(pattern, l):
+                continue
+            rawlines.append(l.rstrip('\n'))
+
+    return rawlines
+
+
+def json_save(bdir, jsdmp, jsonfile):
+    debug = False
+    odir = os.path.join(bdir, 'ingestor/json')
+    if not os.path.exists(odir):
+        os.mkdir(odir)
+    ofile = os.path.join(odir, os.path.basename(jsonfile))
+
+    if debug:
+        print 'out file:', ofile
+        print "JSON Dump:"
+        print jsdmp
+    else:
+        with open(ofile, 'wt') as f:
+            f.write(jsdmp)
+
+
+def valid_file(fname):
+    ofile = fname + '.out'
+
+    if os.path.exists(ofile):
+        return True
+    return False
+
+
+def valid_tball(fname):
+    tfile = fname + '.tar.gz'
+
+    if os.path.exists(tfile):
+        return True
+    return False
+
+
+def valid_gzip(fname):
+    gzfile = fname + '.out.gz'
+
+    if os.path.exists(gzfile):
+        return True
+    return False
+
+
+class Errors:
+    # 0,    1,      2,       3,     4,     5,      6,     7
+    e_ok, e_mpty, e_noent, e_tok, e_zok, e_nzrc, e_nan, e_stok = range(8)
+
+
+def output_status(fname):
+    sfile = fname + '.stats'
+
+    if os.path.exists(sfile):           # stats file exists ?
+        size = os.stat(sfile).st_size
+        if size > 0:
+            with open(sfile, 'r') as f:
+                for l in f.readlines():
+                    l.rstrip('\n')
+                    pattern = '^#.*$'           # skip comment lines
+                    mp = re.match(pattern, l)
+                    if mp:
+                        continue
+
+                    pattern = '^[A-Za-z0-9-_ ]* return code: (.*)$'
+                    mp = re.match(pattern, l)
+                    if mp:
+                        try:
+                            rc = int(mp.group(1))
+                        except ValueError:
+                            return Errors.e_nan
+
+                        if rc != 0:
+                            return Errors.e_nzrc
+                        break
+            return Errors.e_stok
+    return Errors.e_noent
+
+
+def valid_tar_gz(fname):
+    ftgz = fname + '.tar.gz'
+
+    if not os.path.exists(ftgz):        # tar.gz file exists ?
+        return Errors.e_noent
+
+    rc = output_status(fname)
+    if rc != Errors.e_stok:
+        return rc
+
+    return Errors.e_ok
+
+
+def valid_out_gz(fname):
+    fogz = fname + '.out.gz'
+
+    if not os.path.exists(fogz):        # out.gz file exists ?
+        return Errors.e_noent
+
+    rc = output_status(fname)
+    if rc != Errors.e_stok:
+        return rc
+
+    return Errors.e_ok
+
+
+def valid_output(fname, skip=False):
+    ofile = fname + '.out'
+
+    if valid_file(fname):
+        size = os.stat(ofile).st_size        # is file empty ?
+        if size <= 0:
+            if valid_tball(fname):
+                return Errors.e_tok
+            return Errors.e_mpty
+    else:
+        return Errors.e_noent
+
+    if valid_gzip(fname):
+        return Errors.e_zok
+
+    if skip:
+        return Errors.e_ok
+
+    rc = output_status(fname)
+    if rc != Errors.e_stok:
+        return rc
+
+    return Errors.e_ok

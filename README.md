@@ -1,14 +1,36 @@
-Ingestor
-========
+#
+# NXTA_Ingestor.git
+# 2016-11-10
+#
+ This repository contains:
 
-This repository contains all scripts and files related to the Ingestor.
+ 1) All legacy ingestor.sh and associated helper scripts
 
-Ingestor: This set of scripts is used to ingest Collector tarballs uploaded to our ftp/http site. It handles both initial ingestion (moving, untarring, archiving original), as well as initiates all ingestion scripts on the untarred information, allowing for a variety of analysis and health check tasks to be automated and reported on.
+ 2) Next Generation Tools (three major components):
+
+	- The Nexenta Ingestor re-write (nxing.py) with TCP
+	  service capability
+
+	- A new ingestion-script to post-process raw bundle
+	  text files into JSON object files (A3-raw-to-json.py)
+
+	- The Nexenta Collector Analyzer Tool (nxcat.py) intended
+	  to be used for collector bundle overview and (hopefully)
+	  make root cause analysis faster and more efficient
+
+ 3) Csummary ingestion-script integration
+
+    # Ben can say stuffs here
 
 
-Collector
-=========
+#
+# Runtime Notes
+#
+ Both 'legacy' and 'NextGen' tools now rely on environment variables
+ set by sourcing ./.nxrc. The only change you should have to make to
+ deploy, is make sure NXTA_INGESTOR points to this directory (wherever
+ it gets installed) and you should be golden.
 
-Collector is maintained in Nexenta's Stash install now, not Github. Ingestor remains on this Github.
+ To run 'nxcat' or 'nxing' manually, make sure you source ./.nxrc so
+ that PYTHONPATH is set properly.
 
-I try to keep an up to date .deb at: http://www.nexenta.com/nexenta-collector_latest_solaris-i386.deb , for download to appliances (both ones pre-dating 3.1.5, or 3.1.5+ if you want to snag a later version).
