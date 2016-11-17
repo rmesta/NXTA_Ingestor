@@ -4,47 +4,48 @@ Could also assign an idea to yourself if you plan on working on it in near futur
 
 Check that primarycache is not off on any dataset, in general.
 Check that secondary cache is not off on any dataset when the pool has L2ARC.
-Make sure dump device is sized adequately.
 Warn on sync=disabled on any dataset.
 Warn on sync=standard or writeback cache off on zvols.
 Warn on atime=on on datasets. (worth it?)
 Implement functionality similar to volume-check to warn on non-redundant vdevs,
       dissimilar vdev layouts, unequal disk sizes and unequal models
-Implement extraction of fhardware and firmware versions to allow for quick identification of 
-      possible root causes and future comparision against HSL
 Implement analytics/correlate FMA data with disk issues ( and other hardware issues )
 Warn on excessive space usage of snapshots (threshold TBD)
 Warn on checksum=off anywhere
 Warn on compression=!off/zle if compressratio < 1.02
 Warn on mountpoint of child datasets not matching mountpoint of parent
-Warn on dedup=on and dedup ratio < 2x, make note of dedup=on.
-Warn on low zfs used/avail ratio on the root of the pool
 Warn on zfs_no_write_throttle=1 or non-zero zfs_write_limit_override
-Warn on zfs_nocacheflush
 Warn on any pools not ONLINE
-Detect and warn on SUP-664
-Warn on 3TB and larger drives in 2-way mirrors or raidz1
-Warn on stale NMS locks (older than 1 day?)
-Warn on obviously unconfigured mailer (no smtp_server, no smtp_addresses)
 Warn on any runners that are in maintenance
-Check for incorrect lm_auth version for the appliance version (correct levels TBD)
 Check for LINK UP FC events in messages that are not on boot - might indicate fabric issue
 Check for disks where not all paths are ONLINE or STANDBY
-Check for disk errors in various places
 Check scsi_vhci.conf to make sure it has nothing stupid in it.
 Check if all non-syspool disks are under mpxio
 Warn about non-standard entries in sd.conf
-Warn about SATA drives behind expanders
 Warn if any default FMA modules are not active
 Check for error counter outliers in HBA stats (sasinfo) - need to find good examples
 Warn if excessive daisy-chaining is detected in sasinfo expander -t (Tier 3 might already be shady, but depends on other conditions)
 Warn if any driver instances of the same name have non-matching amount of interrupts assigned to them
 Warn if any drivers share interrupts
 Warn if kmem_flags != 0 (performance impact)
-Warn if non-standard tuneables are present in /etc/system (need to maintain a list of commonly used ones and thresholds)
 Warn if /etc/system doesn't match ::system | mdb -k - means something was changed since last reboot
 Warn if recent dumps (<1 month old) are present in /var/crash/myhost
-Warn on out-of-date version of collector
+use the go-live directory/files to determine which Collector, if any, was used to perform SAC. note: older systems won't have this, indicate oldest several collectors in this case.
+cifs/nfs nbmand check (nexchecklet? multiple related bugs):
+* for each of cifs filesystems,
+   check to see if it's also an nfs filesystem
+       - if it is, verify whether nbmand is enabled
+add 'single disk failure' detection (NEX-3988, NEX-6064)
+add per-mpt_sas disk-centric analysis eg: grep -A1 mpt_sas6 $path_messages | grep target
+fma data fmdump size check before running
+`messages` size check before running
+check messages for mpt_sas errors for specific disks and see if they have been removed from pool (eg. faulted drives not physically pulled)
+add quick arc demand metadata hitrate check
+Trashiba drive check http://supportwiki.nexenta.com/wiki/HDD_brand_specific_info MK1001TRKB MK2001TRKB
+historic view of hardware on disk and/or jbod?
+check for completeness of RSF config (entries in hosts, if used are present, hb disks alive)
+create a check for "WARNING: svc_cots_kdup no slots free"
+COMPELLENT check /home/support/ingested/2016-11-03/collector-T256-F4211C6985-65G668BJG-HORFMS_znas2_2016-11-03.10-31-05MDT
 
 Continue updating this list
 
