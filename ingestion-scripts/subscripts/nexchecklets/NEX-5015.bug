@@ -1,0 +1,7 @@
+#!/bin/bash
+# Ben Hodgens 9/21/2016
+# review-1:/home/support/ingested/2016-09-22/collector-G208-A713130842-9DE8HCAMK-BMNHJR_nex7b_2016-09-22.07-56-25CEST
+error=$(grep l2.*error.*=.*[1-9] $1/zfs/echo-arc-mdb-k.out)
+if [[ $error != "" ]]; then 
+    echo "NEX-5015: possible L2 ARC error counters incrementing without cause (verify no hardware errors for L2 devices)"
+fi

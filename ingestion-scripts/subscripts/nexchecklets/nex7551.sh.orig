@@ -1,0 +1,53 @@
+#!/bin/bash
+# Benjamin Hodgens 2016-09-01
+# NEX-7551 test
+# input is a day's ingested directory's datestamp (eg. 2016-06-06)
+#echo input $1
+if test $# -gt 0; then
+    for flag in "$@"; do
+        case $flag in
+            -c=*)
+                # check a specific Collector
+                col_path="${flag#*=}"
+                shift
+            ;;
+            -d=*)
+                # check all collectors within a specific directory/parent date
+                DATE_SEARCH="${flag#*=}"
+                shift
+            ;;
+            *)
+                echo "Invalid argument: ${flag#*}"
+                echo "    -c= check within specified (relative) Collector path"
+                echo "    -d= check all within a specific date path (eg. 2016-06-06)"
+                exit
+            ;;
+        esac
+    done
+fi
+
+if [[ $col_path ]]; then
+    echo "colpath $col_path"
+    poollist=$(awk {'print $1'} $col_path/zfs/zpool-list-o-all.out | egrep -v "syspool|NAME") 
+    for pool in $poollist; do
+    #    echo $pool
+        poolspa=$(sed -n "/$pool/,/^$/p" $col_path/zfs/echo-spa-c-mdb-k.out)
+        pool_ashift_cnt=$(printf "$poolspa" | grep ashift | sort | uniq -c | wc -l)
+        if [[ $pool_ashift_cnt -gt "1" ]]; then
+            echo $pool has multiple ashift.
+        fi
+    done
+elif [[ $DATE_SEARCH ]]; then 
+    for col in $(ls -d ~/ingested/$DATE_SEARCH/*); do 
+        poollist=$(awk {'print $1'} $col/zfs/zpool-list-o-all.out | egrep -v "syspool|NAME") 
+        # need to determine which pools have multiple ashift
+        for pool in $poollist; do 
+        #    echo $pool
+            poolspa=$(sed -n "/$pool/,/^$/p" $col/zfs/echo-spa-c-mdb-k.out)
+            pool_ashift_cnt=$(printf "$poolspa" | grep ashift | sort | uniq -c | wc -l)
+            if [[ $pool_ashift_cnt -gt "1" ]]; then
+                echo $col $pool has multiple ashift. 
+            fi
+        done
+    done
+fi

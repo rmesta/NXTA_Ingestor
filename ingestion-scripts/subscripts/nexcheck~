@@ -1,0 +1,118 @@
+#!/bin/bash
+# Benjamin Hodgens 2016-09-01
+# `nexcheck` is a framework for independent NEX check scripts, to be run against a Collector or group of Collectors
+# TODO make it so we can check various attributes globally not just NEX checks, for finding patterns in collector data
+
+# ----------------------- README ----------------------------
+# *** nexchecklets requirements/design (under bin/nexchecklets) 
+# We expect basic input to these scripts only!
+#   $1 to the nexchecklet is the Collector path 
+#   NEX-specific checks can check any of the following:
+#       * presence of a patch
+#       * behavior demonstrating the presence of the bug 
+#   each script only checks one thing (patch or bug); supplemental scripts should be added if necessary (eg. patch + behavior)
+#   if the script does not detect the bug or the patch, nothing is output. 
+#   the script output should output its filename and what was checked as precisely as possible (eg. check for known conditions if possible but indicate if the 
+#       issue may not be precisely detected (eg. NEX-4444.bug: (possible) mutant spiders)
+#   scripts should be named after the NEX issue specifically, with a suffix, eg. "NEX-5555.bug" for readability.
+#   scriptlets files need to be chmod +x
+#   Do NOT make the scripts output anything if nothing is detected. 
+#   Please include a Collector path in comments of the script where it tests successfully
+#   Please test your script for proper functionality before inclusion: ./NEX-FOO.bug <path-to-collector>
+#   See NEX-7551.bug for an example.
+
+
+# TODO need to make this per-version (collector.conf) specific for NEX detection
+# TODO allow for selection of 'hardware' type issues (eg. -t=hardware or -t=software) to search for all issues of a specific 'type' 
+#    as would be detected in csummary
+spath="/home/bhodgens/scripts/subscripts/nexchecklets/"
+#spath="/root/Collector/Ingestor/ingestion-scripts/subscripts/nexchecklets/"
+
+if test $# -gt 0; then
+    for flag in "$@"; do
+        case $flag in
+            -c=*)
+                # check a specific Collector
+                col_path="${flag#*=}"
+				if [[ ! -f $col_path/collector.stats ]]; then
+			    	echo "$0 - this isn't a collector! Exiting. ($col_path)"
+				    exit
+				fi
+                shift
+            ;;
+            -d=*)
+                # check all collectors within a specific directory/parent date
+                date_search="${flag#*=}"
+                shift
+            ;;
+            -i=*)
+                issue="${flag#*=}"
+                shift
+            ;;
+ #           -t=*)
+ #               case ${flag#*=} in 
+ #                   hardware)
+ #                   ;;
+ #                   software)
+ #                   ;;
+ #                   services)
+ #                   ;;
+ #                   bugs)
+ #                   ;; 
+ #                   esac 
+ #               shift
+ #               ;;
+            *)
+                echo "Invalid argument: ${flag#*}"
+                echo "    -c= check within specified (relative) Collector path"
+                echo "    -d= check all within a specific date path (eg. 2016-06-06)" 
+                echo "    -i= only check for specific issue, eg. NEX-666, 1 per run for now"
+#                echo "    -t= type of check to perform. hardware, bugs, nex. Run -t with no options for more info, defaults to 'bugs'." # TODO 
+                echo "    -l= check a specific machine license substring (not implemented, would use listcol)"
+                echo "    -v  extra whiskey (TODO)"
+                echo
+                echo        "If no parameters are provided, we'll run -=c= on pwd."
+                exit
+            ;;
+        esac
+    done
+fi
+
+function scriptlets() {
+    for scriptlet in $(ls $spath); do 
+        # DEBUG script is $scriptlet
+        if [[ -e $spath/$scriptlet && -x $spath/$scriptlet ]]; then
+            # DEBUG running $scriptlets on $1
+            exec $spath/$scriptlet $1 
+        fi
+    done
+}
+function nex_specific() {
+    NEX=$1
+    col=$2
+    for script in $(ls $spath/$NEX.*); do 
+        #echo $script
+        if [[ -e $spath/$script && -x $spath/$script ]]; then
+            exec $spath/$script $1 
+        fi
+    done 
+}
+# main 
+if [[ $col_path ]]; then
+    if [[ $issue ]]; then
+        # DEBUG nex_spec $issue $col_path
+        nex_specific $issue $col_path
+    else    
+        # DEBUG scriptlets $col_path
+        scriptlets $col_path
+    fi
+elif [[ $DATE_SEARCH ]]; then 
+    for col in $(ls -d ~/ingested/$date_search/*); do
+        if [[ $issue ]]; then
+            result=$(nex_specific $issue $col)
+        else    
+            result=$(scriptlets $col)
+        fi
+    echo $col: $result
+    done 
+fi

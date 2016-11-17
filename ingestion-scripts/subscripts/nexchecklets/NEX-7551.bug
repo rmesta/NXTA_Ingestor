@@ -1,0 +1,13 @@
+#!/bin/bash
+# Benjamin Hodgens 2016-09-01
+# NEX-7551 test
+#echo input $1
+col_path="$1"
+poollist=$(awk {'print $1'} $col_path/zfs/zpool-list-o-all.out | egrep -v "syspool|NAME") 
+for pool in $poollist; do
+    poolspa=$(sed -n "/$pool/,/^$/p" $col_path/zfs/echo-spa-c-mdb-k.out)
+    pool_ashift_cnt=$(printf "$poolspa" | grep ashift | sort | uniq -c | wc -l)
+    if [[ $pool_ashift_cnt -gt "1" ]]; then
+        echo "NEX-7551: $pool has multiple ashift vdevs."
+    fi
+done

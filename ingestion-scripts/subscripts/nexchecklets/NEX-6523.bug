@@ -1,0 +1,6 @@
+#!/bin/bash
+# BAH 2016-06-28
+nex6532=$(grep sharenfs $1/zfs/zfs-get-p-all.out | egrep '((rw|ro|root)=|:)[0-9]' | awk '{print $3}' | tail -n1) # only want one line output at most
+if [[ $(echo $nex6532 | awk '{print $1}') ]]; then
+    echo "* NEX-6532 candidate : $nex6532"
+fi

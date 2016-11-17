@@ -1,0 +1,104 @@
+#!/bin/bash
+# Passing a $1 argument will list all collectors that have a string that matches that argument.
+# Passing no argument will use your current working directory and strip out the machinesig
+#   and use that to list all matching collectors with same machinesig.
+# CRN - 2016-03-10 -- rewrote the search potion to work faster. It now displays the newest collector first.
+# BAH - 2016-06-24 -- added -n= limit to allow it to return faster for scripting purposes.
+# CRN - 2016-07-01 -- added -g to automatically take you to the newest collector found with -c or pwd.
+# CRN - 2016-07-06 -- added -d to only check a single date.
+# BAH - 2016-11-11 -- modified to be used for ingestor scripts
+col_base="/mnt/carbon-steel/ingested/"
+#col_base="~/ingested/"
+START_TIME=$(date +'%s')
+DEFAULT_DUR=300;DUR_KILL=$DEFAULT_DUR
+COUNT=0;MAX_C=10
+CFLAG=0;FFLAG=0;DFLAG=0
+if test $# -gt 0; then
+    for flag in "$@"; do
+        case $flag in
+            -c=*)
+                CFLAG=1
+                CVALUE="${flag#*=}"
+                CSEARCH=$(echo $CVALUE | sed -e 's/^-//' | sed -e 's/\.[0-9][0-9][0-9][0-9]\.tar\.gz$//')
+                shift
+            ;;
+            -d=*)
+                DFLAG=1
+                DATE_SEARCH="${flag#*=}"
+                shift
+            ;;
+            -f=*)
+                FFLAG=1
+                FIND="${flag#*=}"
+                shift
+            ;;
+            -n=*)
+                MAX_C="${flag#*=}"
+                shift
+            ;;
+            -t=*)
+               DUR_KILL="${flag#*=}"
+               shift 
+            ;;
+            -g)
+                GO=1
+                MAX_C=1
+            ;;
+            *)
+                echo "Invalid argument: ${flag#*}"
+                echo "    -c= String in collector filename to search for"
+                echo "    -f= Filename to find within the collector"
+                echo "    -g= Automatically go to the newest collector matching -c"
+                echo "    -n= Output this many ingested paths maximum; default 10"
+                echo "    -t= How long we want to wait, in seconds"
+                exit
+            ;;
+        esac
+    done
+fi
+if [[ $CFLAG -eq 0 ]]; then
+    CSEARCH=$(pwd | awk -F/ '{print $6}' | awk -F- '{print $4}')
+fi
+if [[ $FFLAG -eq 1 ]]; then
+    COLCOUNT=0
+    for loop in $(ls -d $col_base/2*/*$CSEARCH*); do
+        COLCOUNT=$loopcount+1
+        find $loop -name "*${FIND}*" -exec ls -la {} \;
+    done
+else
+    if [[ ! -z $CSEARCH ]]; then
+        if [[ $DFLAG -eq 0 ]]; then
+            for loop in $(echo $col_base/20* | sed 's/ /\n/g' | sort -n -r); do
+                CL=$(echo $loop/* | sed 's/ /\n/g' | sort -r | grep -i $CSEARCH 2> /dev/null)
+                CURRENT_TIME=$(date +'%s')
+                DURATION=$(( $CURRENT_TIME - $START_TIME ))
+                if [[ "$MAX_C" -ne 0 ]]; then
+                    if [[ $DURATION -ge $DUR_KILL ]]; then
+                        if [[ $DUR_KILL -eq $DEFAULT_DUR ]]; then
+                            echo "Timeout: $DUR_KILL seconds reached. There might be more collectors to search."
+                            echo "         Please increase the search time with the -t flag."
+                        fi
+                        exit;
+                    fi
+                fi
+                if [[ "$CL" != "$loop/*$CSEARCH*" ]]; then 
+                    for COL in $(echo $CL); do
+                        if [[ $GO -eq 1 ]]; then
+                            cpwd "$COL"
+                        else
+                            echo $COL
+                        fi
+                        COUNT=$(($COUNT + 1))
+                        if [[ "$MAX_C" -ne 0 ]]; then
+                            if [[ "$COUNT" -ge "$MAX_C" ]]; then 
+                                exit;
+                            fi
+                        fi
+                    done
+                fi
+            done
+        else
+            ls -d $col_base/${DATE_SEARCH}/*$CSEARCH* 2> /dev/null
+        fi
+    fi
+fi

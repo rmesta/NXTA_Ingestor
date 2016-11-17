@@ -1,0 +1,8 @@
+NEX-6021 - possibly related to ashift=9 with ashift=12 slog?
+NEX-5015
+- cstate ?  
+- ARC specific bugs ? 
+- detect for "Offlining" LU - 
+- SANDISK-SDIFHS0{1,2} / NEX-5552 enclosures/sesctl-enclosure.out - and release FP5? 
+ NEX-2855 (nbmand check - if sharesmb=on or nfsv4 is in use, nbmand must be on)
+
