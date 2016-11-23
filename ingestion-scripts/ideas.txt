@@ -46,7 +46,7 @@ historic view of hardware on disk and/or jbod?
 check for completeness of RSF config (entries in hosts, if used are present, hb disks alive)
 create a check for "WARNING: svc_cots_kdup no slots free"
 COMPELLENT check /home/support/ingested/2016-11-03/collector-T256-F4211C6985-65G668BJG-HORFMS_znas2_2016-11-03.10-31-05MDT
-
+make a 'control' script for the csummary converted scripts to reduce csum_function.sh overhead
 Continue updating this list
 
 

@@ -7,8 +7,28 @@
 # array of strings/checklist of perf analysis prereqs to be printed at the end
 # NOTE, we should be able to just 'source' this to use it from bash if we don't mess it up
 
+# 'output' function for ingestor scripts (and ingestor debugging). Be sure to define DEBUG and/or SQUELCH in your script(s)
+# DEBUG=1 # global/defaults - modify at risk
+# SQUELCH=0 # for running automatically, and not outputting anything - probably not desirable
+function output () {
+	if [[ $DEBUG == "1" ]]; then
+		echo "$1" 	
+    elif [[ -o $outfile ]]; then # TODO implement this into the various scripts instead of "echo"
+        echo "$1" &> $outfile
+    elif [[ $SQUELCH == "1" ]]; then
+        echo "$1" > /dev/null
+    elif [[ -o $1 && -o $2 && $1 == "debug" ]]; then
+        echo "$0 LOG: $1 ln ${BASH_LINENO[*]}"
+    else
+        echo $0: ERROR: please define output type.
+        exit
+    fi
+}
+function debug () { 
+	output debug "$2"
+}
+
 # add a PERF req
-# TODO need to rewrite perf_pre etc. for ingestor, or do something else. 
 perf_pre=('')
 function perf_req() {
     # perf_pre=("${perf_pre[@]}" "$1") # old pre-ingestor way
