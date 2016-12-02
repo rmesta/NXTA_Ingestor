@@ -1088,6 +1088,349 @@ def zplistall_json(bdir):
     json_save(bdir, jsdmp, jsout)
 
 
+def zpstatus_jsp(fname):
+    tmp = {}
+
+    curpool = ''
+    curvdev = ''
+    curtag = ''
+    curlun = ''
+    curhsd = ''
+    rlines = 0
+    lcont = False
+    svdev = False
+    svn = ''
+
+    for line in read_raw_txt(fname):
+        patt = '^\s*$'              # skip empty lines
+        mp = re.match(patt, line)
+        if mp:
+            continue
+
+        if ':' in line:
+            lcont = False
+            svdev = False
+            lhs = ''
+            rhs = ''
+
+            patt = '\s*(\w+):(.*)$'
+            mp = re.match(patt, line)
+            if mp:
+                lhs = mp.group(1).lstrip()
+                rhs = mp.group(2).lstrip()
+
+            if lhs == 'pool':
+                curpool = rhs
+                if curpool not in tmp:
+                    tmp[curpool] = {}
+
+            elif lhs == 'scan' or lhs == 'status':
+                tmp[curpool][lhs] = []
+                tmp[curpool][lhs].append(rhs)
+                curtag = lhs
+                lcont = True
+                continue
+
+            elif lhs == 'action':
+                tmp[curpool][lhs] = rhs
+
+            elif lhs == 'config':
+                continue
+
+        elif lcont == True:
+            #
+            # scan/status multi-line output
+            #
+            tmp[curpool][curtag].append(line.strip())
+            continue
+
+        else:
+            patt = '\tNAME.*$'
+            mp = re.match(patt, line)
+            if mp:
+                continue
+
+            # line pattern (prefixes added later)
+            lp = '([A-Za-z0-9_-]+)\s*(\w+)\s*(\S+)\s*(\S+)\s*(\S+)(.*)$'
+
+            #
+            # logs/cache/spares
+            #
+            patt = '^\t([A-Za-z0-9_-]+)$'
+            mp = re.match(patt, line)
+            if mp:
+                if mp.group(1) == 'logs' or     \
+                   mp.group(1) == 'cache' or    \
+                   mp.group(1) == 'spares':
+
+                    vdev = mp.group(1)
+                    if vdev not in tmp:
+                        tmp[vdev] = {}
+                    curvdev = vdev
+                    svdev = True
+                continue
+
+            if svdev:
+                if curvdev == 'logs':
+                    #
+                    # logs contents
+                    #
+                    pfix = '^\t\s\s'
+                    patt = pfix + lp
+                    mp = re.match(patt, line)
+                    if mp:
+                        svn = mp.group(1)
+                        stt = mp.group(2)
+
+                        if svn not in tmp[curvdev]:
+                            tmp[curvdev][svn] = {}
+                        tmp[curvdev][svn]['state'] = stt
+                        continue
+
+                    pfix = '^\t\s\s\s\s'
+                    patt = pfix + lp
+                    mp = re.match(patt, line)
+                    if mp:
+                        lun = mp.group(1)
+                        state = mp.group(2)
+                        read = mp.group(3)
+                        write = mp.group(4)
+                        cksum = mp.group(5)
+                        if 'luns' not in tmp[curvdev][svn]:
+                            tmp[curvdev][svn]['luns'] = []
+                        tl = [lun, state, read, write, cksum]
+                        tmp[curvdev][svn]['luns'].append(tl)
+
+                elif curvdev == 'cache':
+                    #
+                    # cache contents
+                    #
+                    pfix = '^\t\s\s'
+                    patt = pfix + lp
+                    mp = re.match(patt, line)
+                    if mp:
+                        lun = mp.group(1)
+                        state = mp.group(2)
+                        read = mp.group(3)
+                        write = mp.group(4)
+                        cksum = mp.group(5)
+
+                        if 'luns' not in tmp[curvdev]:
+                            tmp[curvdev]['luns'] = []
+                        tl = [lun, state, read, write, cksum]
+                        tmp[curvdev]['luns'].append(tl)
+
+                elif curvdev == 'spares':
+                    #
+                    # spares contents
+                    #
+                    lp = '([A-Za-z0-9_-]+)\s*(\w+)\s*(.*)$'
+                    pfix = '^\t\s\s'
+                    patt = pfix + lp
+                    mp = re.match(patt, line)
+                    if mp:
+                        lun = mp.group(1)
+                        state = mp.group(2)
+                        lgnd = mp.group(3)
+
+                        if 'luns' not in tmp[curvdev]:
+                            tmp[curvdev]['luns'] = []
+                        tl = [lun, state, lgnd]
+                        tmp[curvdev]['luns'].append(tl)
+
+                continue
+
+            #
+            # Pools
+            #
+            pfix = '^\t'
+            patt = pfix + lp
+            mp = re.match(patt, line)
+            if mp:
+                if curpool == mp.group(1):
+                    if curpool not in tmp:
+                        tmp[curpool] = {}
+                    tmp[curpool]['State'] = mp.group(2)
+                continue
+
+            #
+            # vdevs
+            #
+            pfix = '^\t' + 2*'\s'
+            patt = pfix + lp
+            mp = re.match(patt, line)
+            if mp:
+                curvdev = mp.group(1)
+                if curvdev not in tmp[curpool]:
+                    tmp[curpool][curvdev] = {}
+                tmp[curpool][curvdev]['State'] = mp.group(2)
+                continue
+
+            #
+            # luns per vdev
+            #
+            pfix = '^\t' + 4*'\s'
+            patt = pfix + lp
+            mp = re.match(patt, line)
+            if mp:
+                rec = mp.group(1).lower()
+
+                #
+                # cXtY... type device
+                #
+                pt1 = '^(c\d+t[0-9A-Fa-f]+)$'
+                mp1 = re.match(pt1, rec)
+                if mp1:
+                    msg = ''
+                    lun = rec
+                    state = mp.group(2)
+                    read = mp.group(3)
+                    write = mp.group(4)
+                    cksum = mp.group(5)
+
+                    if 'luns' not in tmp[curpool][curvdev]:
+                        tmp[curpool][curvdev]['luns'] = []
+
+                    if state == 'ONLINE':
+                        act = mp.group(6).lstrip()
+                        pt3 = '^\((\w+)\)$'
+                        mp3 = re.match(pt3, act)
+                        if mp3:
+                            msg = mp3.group(1)
+
+                    tl = [lun, state, read, write, cksum, msg]
+                    tmp[curpool][curvdev]['luns'].append(tl)
+                    continue
+
+                #
+                # spare-x / replacing-x
+                #
+                pt2 = '^([A-Za-z0-9_-]+)$'
+                mp2 = re.match(pt2, rec)
+                if mp2:
+                    curlun = lun = rec
+                    state = mp.group(2)
+                    read = mp.group(3)
+                    write = mp.group(4)
+                    cksum = mp.group(5)
+
+                    if 'luns' not in tmp[curpool][curvdev]:
+                        tmp[curpool][curvdev]['luns'] = []
+
+                    if state != 'ONLINE':
+                        tl = [lun, state]
+
+                        if 'hs' not in tmp[curpool][curvdev]:
+                            tmp[curpool][curvdev]['hs'] = {}
+
+                        tmp[curpool][curvdev]['hs'][curlun] = {}
+                        tmp[curpool][curvdev]['hs'][curlun]['state'] = state
+
+                        if state == 'UNAVAIL':
+                            act = mp.group(6)
+                            dv = act.split()[-1].split('/')[-1]
+                            tmp[curpool][curvdev]['hs'][curlun]['old'] = dv
+                        else:
+                            tmp[curpool][curvdev]['hs'][curlun]['devs'] = {}
+                    else:
+                        tl = [lun, state, read, write, cksum]
+                        tmp[curpool][curvdev]['luns'].append(tl)
+                    continue
+
+            #
+            # hs'd luns
+            #
+            pfix = '^\t' + 6*'\s'
+            patt = pfix + lp
+            mp = re.match(patt, line)
+            if mp:
+                curhsd = lun = mp.group(1).lower()
+                state = mp.group(2)
+                read = mp.group(3)
+                write = mp.group(4)
+                cksum = mp.group(5)
+
+                devs = tmp[curpool][curvdev]['hs'][curlun]['devs']
+                if lun not in devs:
+                    devs[curhsd] = {}
+                    devs[curhsd]['st'] = state
+                    devs[curhsd]['rd'] = read
+                    devs[curhsd]['wr'] = write
+                    devs[curhsd]['ck'] = cksum
+                    if state == 'UNAVAIL':
+                        act = mp.group(6)
+                        devs[curhsd]['old'] = act.split()[-1].split('/')[-1]
+                    elif state == 'ONLINE':
+                        act = mp.group(6).lstrip()
+                        pt3 = '^\((\w+)\)$'
+                        mp3 = re.match(pt3, act)
+                        if mp3:
+                            devs[curhsd]['msg'] = mp3.group(1)
+                    else:
+                        devs[curhsd]['nx'] = {}
+                continue
+
+            #
+            # failed hs lun
+            #
+            pfix = '^\t' + 8*'\s'
+            patt = pfix + lp
+            mp = re.match(patt, line)
+            if mp:
+                fdev = mp.group(1).lower()
+                state = mp.group(2)
+                read = mp.group(3)
+                write = mp.group(4)
+                cksum = mp.group(5)
+
+                fds = tmp[curpool][curvdev]['hs'][curlun]['devs']
+                for l in fds:
+                    if 'nx' in fds[l]:
+                        if fdev not in fds[l]['nx']:
+                            fds[l]['nx'][fdev] = {}
+                        fds[l]['nx'][fdev]['st'] = state
+                        fds[l]['nx'][fdev]['rd'] = read
+                        fds[l]['nx'][fdev]['wr'] = write
+                        fds[l]['nx'][fdev]['ck'] = cksum
+                        if state != 'ONLINE':
+                            fds[l]['nx'][fdev]['nx'] = {}
+
+                continue
+
+            #
+            # failed units
+            #
+            pfix = '^\t' + 10*'\s'
+            patt = pfix + lp
+            mp = re.match(patt, line)
+            if mp:
+                funs = mp.group(1).lower()
+                state = mp.group(2)
+                read = mp.group(3)
+                write = mp.group(4)
+                cksum = mp.group(5)
+
+                if curhsd in tmp[curpool][curvdev]['hs'][curlun]['devs']:
+                    fds = tmp[curpool][curvdev]['hs'][curlun]['devs'][curhsd]
+                    if 'nx' in fds:
+                        foo = fds['nx']
+
+                for u in foo:
+                    if 'nx' in foo[u]:
+                        if funs not in foo[u]['nx']:
+                            foo[u]['nx'][funs] = {}
+
+                        foo[u]['nx'][funs]['st'] = state
+                        foo[u]['nx'][funs]['rd'] = read
+                        foo[u]['nx'][funs]['wr'] = write
+                        foo[u]['nx'][funs]['ck'] = cksum
+                        if state != 'ONLINE':
+                            foo[u]['nx'][funs]['nx'] = {}
+
+    zps = tmp
+    return zps
+
+
 def zpstatus_json(bdir):
     fname = os.path.join(bdir, 'zfs/zpool-status-dv')
     rtfile = fname + '.out'
@@ -1097,7 +1440,7 @@ def zpstatus_json(bdir):
     if not valid_collector_output(fname):
         return
 
-    jsdct = zpool_status(bdir)
+    jsdct = zpstatus_jsp(rtfile)
     jsdmp = json.dumps(jsdct, indent=2, separators=(',', ': '), sort_keys=True)
     json_save(bdir, jsdmp, jsout)
 
@@ -2789,7 +3132,7 @@ __credits__ = ["Rick Mesta, Billy Kettler"]
 __license__ = "undefined"
 __version__ = "$Revision: " + r2j_ver + " $"
 __created_date__ = "$Date: 2015-03-02 09:00:00 +0600 (Mon, 02 Mar 2015) $"
-__last_updated__ = "$Date: 2016-09-16 11:32:00 +0600 (Fri, 16 Sep 2016) $"
+__last_updated__ = "$Date: 2016-12-01 13:07:00 +0600 (Thu, 01 Dec 2016) $"
 __maintainer__ = "Rick Mesta"
 __email__ = "rick.mesta@nexenta.com"
 __status__ = "Production"

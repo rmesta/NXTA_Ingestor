@@ -391,7 +391,12 @@ def print_fmt_msg(hdr, msg, disp):
 
 
 def print_status(pool):
-    if 'status' in zp_stat[pool]:
+    global zp_stat
+
+    if 'State' in zp_stat[pool]:    # New format
+        print_fmt_msg('State:', zp_stat[pool]['State'], 'bold')
+
+    elif 'status' in zp_stat[pool]: # Old format
         print_fmt_msg('Status', zp_stat[pool]['status'], 'bold')
 
     return
@@ -410,7 +415,7 @@ def get_vdev(pool, item):
     return vdev
 
 
-def slot_xref(msg, vd, color):
+def slot_xref(msg, vd, color, sfix = ''):
     global base
     File = os.path.join(base, 'ingestor/json/nmc-c-show-lun-slotmap.out.json')
 
@@ -444,7 +449,11 @@ def slot_xref(msg, vd, color):
         return False
 
     if jbod and slotno:
-        s = msg + vd + '\t\t( ' + jb + ', slot:' + sn + ' )'
+        if len(sfix) == 0:
+            s = msg + vd + '\t\t( ' + jb + ', slot:' + sn + ' )'
+        else:
+            s = msg + vd +  \
+                '\t( ' + jb + ', slot:' + sn + ' )\t' + '(' + sfix + ')'
         print_bold(s, color, True)
     else:
         print_bold(msg + vd, color, True)
@@ -461,7 +470,7 @@ def simple_device(dev):
     return False
 
 
-def print_devices(pool):
+def print_devices_ofmt(pool):
     global zp_stat
 
     vdevs = [pool, 'cache', 'logs']
@@ -594,12 +603,209 @@ def print_devices(pool):
     return
 
 
+def print_lun(lun):
+    lname = lun[0].lower()
+    lstat = lun[1]
+
+    if lstat == 'ONLINE':
+        slot_xref('\t\t', lname, 'green')
+    else:
+        slot_xref('\t\t', lname, 'red')
+
+    return
+
+
+ident = 2
+def print_nx_devs(nxd):
+    global  ident
+
+    if len(nxd) == 0:
+        return
+
+    ident += 1
+    for y in nxd:
+        nd = nxd[y]
+        if nd['st'] == 'ONLINE':
+            slot_xref('\t' + 2*ident*' ', y, 'green')
+        else:
+            slot_xref('\t' + 2*ident*' ', y, 'red')
+
+        if 'nx' in nd and len(nd['nx']) != 0:
+            print_nx_devs(nd['nx'])
+
+    return
+
+
+def print_hs_data(vdev):
+    global  ident
+
+    for fd in vdev['hs']:
+        if vdev['hs'][fd]['state'] == 'DEGRADED':
+            print_fail('\t  ' + fd)
+
+        if 'devs' in vdev['hs'][fd]:
+            dvs = vdev['hs'][fd]['devs']
+            for x in sorted(dvs):
+                if dvs[x]['st'] == 'ONLINE':
+                    if 'msg' in dvs[x]:
+                        col = 'yellow'
+                        msg = dvs[x]['msg']
+                        slot_xref('\t' + 2*ident*' ', x, col, sfix=msg)
+                    else:
+                        col = 'green'
+                        slot_xref('\t' + 2*ident*' ', x, col)
+                else:
+                    if '-' in x:    # print replacing-X or spare-X labels
+                        print_fail('\t' + 2*ident*' ' + x)
+
+                    if 'nx' in dvs[x]:
+                        print_nx_devs(dvs[x]['nx'])
+                    elif 'old' in dvs[x]:
+                        pdev = dvs[x]['old']
+                        pdst = dvs[x]['st']
+                        msg = x + ' was ' + pdev + ' (%s) ' % pdst
+                        print_fail('\t' + 2*ident*' ' + msg)
+
+        elif 'old' in vdev['hs'][fd]:
+            pdev = vdev['hs'][fd]['old']
+            pdst = vdev['hs'][fd]['state']
+            msg = fd + ' was ' + pdev + ' (%s) ' % pdst
+            print_fail('\t' + 2*ident*' ' + msg)
+    return
+
+
+def print_spares(spares):
+    print_bold('Spares:', 'white', True)
+    if 'luns' in spares:
+        for l in spares['luns']:
+            if l[1] == 'AVAIL':
+                uc = 'white'
+                sc = 'green'
+            else:
+                uc = 'gray'
+                sc = 'yellow'
+
+            vals = '%s, %s, %s' % (l[0].lower(), l[1], l[2])
+            fmts = '%37s, %7s, %18s,'
+            cols = '%s, %s, %s' %  (uc, sc, sc)
+            disp = 'lite, bold, lite'
+            prfmt_mc_row(vals, fmts, cols, disp)
+    return
+
+
+def print_cache(cache):
+    print_bold('Cache:', 'white', True)
+    if 'luns' in cache:
+        for l in cache['luns']:
+            if l[1] == 'ONLINE':
+                uc = 'white'
+                sc = 'green'
+                fm = '%8s'
+            elif l[1] == 'FAULTED':
+                uc = 'gray'
+                sc = 'red'
+                fm = '%9s'
+            else:
+                uc = 'yellow'
+                sc = 'yellow'
+                fm = '%8s'
+
+            vals = '%s, %s' %  (l[0].lower(), l[1])
+            fmts = '%s, %s' % ('%37s', fm)
+            cols = '%s, %s' %  (uc, sc)
+            disp = 'lite, bold'
+            prfmt_mc_row(vals, fmts, cols, disp)
+    return
+
+
+def print_logs(logs):
+    print_bold('Logs:', 'white', True)
+    for d in logs:
+        if 'luns' in logs[d]:
+            for l in logs[d]['luns']:
+                if l[1] == 'ONLINE':
+                    sc = 'green'
+                else:
+                    sc = 'yellow'
+
+                vals = '%s, %s' %  (l[0].lower(), l[1])
+                fmts = '%37s, %8s,'
+                cols = '%s, %s' %  ('white', sc)
+                disp = 'lite, bold'
+                prfmt_mc_row(vals, fmts, cols, disp)
+    return
+
+
+def zp_vdevs():
+    global base
+    global zp_stat
+    File = os.path.join(base, 'ingestor/json/zpool-status-dv.out.json')
+
+    try:
+        with open(File) as f:
+            zp_stat = json.load(f)
+    except IOError:
+        print_warn('\tNo zpool status info found in bundle', True)
+        return
+
+    print 70 * '-'
+    for vd in zp_stat:
+        if vd == 'spares':
+            print_spares(zp_stat[vd])
+
+        elif vd == 'cache':
+            print_cache(zp_stat[vd])
+
+        elif vd == 'logs':
+            print_logs(zp_stat[vd])
+
+    return
+
+
+def print_devices_nfmt(pool):
+    global zp_stat
+
+    for v in zp_stat[pool]:
+        #
+        # if 'devs' key exists, this is a vdev
+        #
+        if 'luns' in zp_stat[pool][v]:
+            vdev = zp_stat[pool][v]
+
+            if vdev['State'] == 'ONLINE':
+                print_pass('vdev:\t' + v)
+                for lun in vdev['luns']:
+                    print_lun(lun)
+            else:
+                print_fail('vdev:\t' + v)
+                if 'hs' in vdev:
+                    print_hs_data(vdev)
+
+                for lun in vdev['luns']:
+                    print_lun(lun)
+    return
+
+
+def print_devices(pool):
+    global zp_stat
+
+    if 'State' not in zp_stat[pool]:
+        print_devices_ofmt(pool)
+    else:
+        print_devices_nfmt(pool)
+
+    return
+
+
 def print_scan(pool):
     global zp_stat
 
+    print_bold('Scan:', 'yellow', False)
     if 'scan' in zp_stat[pool]:
-        print_fmt_msg('Scan', zp_stat[pool]['scan'], 'lite')
-
+        mlen = len(zp_stat[pool]['scan'])
+        for i in xrange(0, mlen):
+            msg = zp_stat[pool]['scan'][i]
+            print_debug('\t\t' + msg, True)
     return
 
 
@@ -608,8 +814,12 @@ def zp_status(zpool):
     global zp_stat
     File = os.path.join(base, 'ingestor/json/zpool-status-dv.out.json')
 
-    with open(File) as f:
-        zp_stat = json.load(f)
+    try:
+        with open(File) as f:
+            zp_stat = json.load(f)
+    except IOError:
+        print_warn('\tNo zpool status info found in bundle', True)
+        return
 
     for pool in zp_stat:
         if pool != zpool:
@@ -645,8 +855,12 @@ def zp_size_chk(zpool, zpsize):
     global base
     File = os.path.join(base, 'ingestor/json/zfs-get-p-all.out.json')
 
-    with open(File) as f:
-        zprops = json.load(f)
+    try:
+        with open(File) as f:
+            zprops = json.load(f)
+    except IOError:
+        print_warn('\tNo zfs properties info found in bundle', True)
+        return
 
     unit, div = sz_unit(zpsize)
     if debug:
@@ -723,6 +937,8 @@ def zp_list(mode):
             print 'Capacity:\t',
             print_bold(cap, tint, True)
             zp_size_chk(name, size)
+
+    zp_vdevs()
 
 
 #
@@ -3075,7 +3291,7 @@ __credits__ = ["Rick Mesta"]
 __license__ = "undefined"
 __version__ = "$Revision: " + _ver + " $"
 __created_date__ = "$Date: 2015-05-18 18:57:00 +0600 (Mon, 18 Mar 2015) $"
-__last_updated__ = "$Date: 2016-11-10 17:41:00 +0600 (Thu, 10 Nov 2016) $"
+__last_updated__ = "$Date: 2016-12-02 10:43:00 +0600 (Fri, 02 Dec 2016) $"
 __maintainer__ = "Rick Mesta"
 __email__ = "rick.mesta@nexenta.com"
 __status__ = "Production"
