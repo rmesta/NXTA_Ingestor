@@ -10,6 +10,10 @@
 # 'output' function for ingestor scripts (and ingestor debugging). Be sure to define DEBUG and/or SQUELCH in your script(s)
 # DEBUG=1 # global/defaults - modify at risk
 # SQUELCH=0 # for running automatically, and not outputting anything - probably not desirable
+
+# NXTA_INGESTOR is defined in .nxrc of the root of the ingestor tool directory
+[ -z "${NXTA_INGESTOR}" ] && { echo "NXTA_INGESTOR var MUST be set !"; exit 1; }
+
 function output () {
 	if [[ $DEBUG == "1" ]]; then
 		echo "$1" 	
@@ -35,7 +39,7 @@ function perf_req() {
 	echo $1 >> "${BUNDLE_DIR}/ingestor/checks/A9999-perf_req.out"
 }
 #pweight="20"
-SCRIPT_BASE="/root/Collector/Ingestor/ingestion-scripts"
+SCRIPT_BASE="$NXTA_INGESTOR/ingestion-scripts"
 #SCRIPT_BASE="/home/bhodgens/scripts"
 PATH=$PATH:$SCRIPT_BASE:$SCRIPT_BASE/subscripts
 BUNDLE_DIR=$1

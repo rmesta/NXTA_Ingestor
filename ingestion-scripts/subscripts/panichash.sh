@@ -3,15 +3,15 @@
 # needs tsconv
 # unique system panic tracking into a database, run on ingestion
 # TODO - do we need this to be using csum_functions.sh ? 
-DEBUG=0
-SQUELCH=0 # for running automatically
-dbpath="/home/support/bah/panichash.db"
+REPO_ROOT="/mnt/carbon-steel/ingested"
+dbpath="$REPO_ROOT/collector_db/panichash.db"
 #messages="$1/kernel/messages" # Don't use this, need to accomodate old collectors with os/messages*
 #outfile="$1/ingestor/tests/A9480-panichash.out" #TODO 
 db="sqlite3 $dbpath"
 usage="$0 <collector path>" 
 
-output="squelch" # MUST DEFINE: one of stdout, debug, outfile, squelch
+DEBUG=0
+output="stdout" # MUST DEFINE: one of stdout, debug, outfile, squelch
 function output () { 
     case $output in 
         debug)
@@ -55,27 +55,35 @@ if [[ ! -f $dbpath ]]; then
             name STRING NOT NULL, 
             date DATE NOT NULL, 
             panichash STRING NOT NULL REFERENCES stacktraces(hash),
+            version STRING NOT NULL,
             PRIMARY KEY (machinesig, panichash, date) ON CONFLICT IGNORE)
     ;"
     # TODO to eventually populate with NEX-associations
     $db "CREATE TABLE bugs (
             id string unique not null primary key,
             panichash STRING NOT NULL REFERENCES stacktraces(hash));"
+    output "done."
 fi
 if [[ -z $1 ]]; then 
     output "$usage"
 fi 
 my_relpath=$(echo $1 | sed -e 's/.*\///g') 
-my_machinesig=$(echo $my_relpath | cut -f3 -d-) 
+my_machinesig=$(echo $my_relpath | cut -f4 -d-) 
 my_hostname=$(grep ^Host $1/collector.stats | awk '{print $2}' | sed 's/.*/\L&/') # TODO put this in library
+echo HOSTNAME $my_hostname
+my_version=$(grep version $1/collector.stats | cut -f 2 -d "(" | cut -f 1 -d ")")
 for message_file in $(ls $1/{os,kernel}/messages* 2> /dev/null); do 
-    PANICS=($(grep Mpanic $message_file | sed "s/^.*$my_hostname //" | cut -f 2 -d =))
+    PANICS=($(grep Mpanic $message_file | sed -e 's/ /!/g'))
     for panic in ${PANICS[@]}; do 
-        panic_time=$(grep "$panic" $message_file | tsconv -msgs | awk {'print $1'} ) 
-        output $panic
-        # use s2p here perhaps?
+        tmp_panic=$(echo $panic | sed -e 's/!/ /g')
+#        panic_time=$(grep "$tmp_panic" $message_file | tsconv -msgs | awk {'print $1'} ) 
+        panic_fhalf=$(echo $tmp_panic | sed -e "s/$my_hostname.*=//i" | awk {'print $1, $2, $3'})
+        panic_lhalf=$(echo $tmp_panic | sed -e "s/$my_hostname.*=//i" | awk {'print $4'})
+        panic_time=$(echo $panic_fhalf | tsconv -msgs)
+#        echo first $panic_fhalf
+#        echo last $panic_lhalf
         stacktrace=$( sed \
-            -e "1,/$panic/d" \
+            -e "1,/$panic_fhalf.*=$panic_lhalf/d" \
             -e '/syncing/,$d' \
             -e '/dumping/,$d' \
             -e 's/.*] //' \
@@ -96,12 +104,15 @@ for message_file in $(ls $1/{os,kernel}/messages* 2> /dev/null); do
         )
         panic_string=$(printf "$stacktrace" | head -n1)
         mdhash=$(printf "$stacktrace" | md5sum | awk {'print $1'})
-        output --
-        output "recent panic in thread $panic stacktrace md5sum of $mdhash"
+        output --------------------------
+        output "recent panic in thread $tmp_panic stacktrace md5sum of $mdhash"
         if [[ ! -z $2 ]]; then # DEBUG
             output "HASH: $mdhash"
+#            output "PANIC: $panic"
+#            output "TMPPANIC $tmp_panic"
             output "STRING: $panic_string"
             output "TIME: $panic_time"
+#            output "STACKTRACE: $stacktrace"
         fi
         # TODO need table for NEX-identified stacktrace hashes
         # something weird going on with time and panicstring /home/support/ingested/2016-10-24/collector-P128-ECEBB00490-63IB58KIG-BIRCJK_a2pnexplnas04_2016-10-24.10-45-38MST
@@ -117,7 +128,7 @@ for message_file in $(ls $1/{os,kernel}/messages* 2> /dev/null); do
         collector_present=$($db "select * from collectors where name is '$my_relpath' and date is '$panic_time' limit 1";)
         if [[ -z $collector_present ]]; then
             output "collector not present, inserting"
-            $db "insert into collectors (machinesig, name, panichash, date) values ('$my_machinesig','$my_relpath','$mdhash', '$panic_time');" # on conflict ignore;" # seems to not work for this version of sqlite3?
+            $db "insert into collectors (machinesig, name, panichash, date, version) values ('$my_machinesig','$my_relpath','$mdhash', '$panic_time', '$my_version');" # on conflict ignore;" # seems to not work for this version of sqlite3?
         else 
             output "$mdhash for $my_relpath at $panic_time already exists"
         fi

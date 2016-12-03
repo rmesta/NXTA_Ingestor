@@ -7,7 +7,7 @@ outfile=$(echo "${BUNDLE_DIR}/ingestor/checks/$(echo $SCRIPT_NAME)" | sed -e 's/
 if [[ -e $outfile ]]; then
 	rm $outfile
 fi
-source "/home/bhodgens/scripts/csum_functions.sh"
+source "$NXTA_INGESTOR/ingestion-scripts/csum_functions.sh"
 
 main () {
 # Task: determine the results of the autosac SAC failover verification script
