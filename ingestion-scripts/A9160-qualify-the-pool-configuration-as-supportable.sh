@@ -13,26 +13,26 @@ main () {
 # Task: qualify the pool configuration as supportable
     echo  "$C_BLUE==== Configured pool filesystems/volumes ====$C_RESET" >> $outfile
     echo  >> $outfile
-    poolpresent=$(egrep -v "^NAME|^syspool" $path_zpool_list | awk {'print $1'})
+    poolpresent=$(egrep -v "^NAME|^$syspool_name" $path_zpool_list | awk {'print $1'})
     poolcount=$(echo $poolpresent | wc -w) 
     if [[ "$poolcount" -gt "1" ]]; then
         echo  "* There are $poolcount data pools present on this system!" >> $outfile
         echo  >> $outfile
     #    echo "$poolpresent" not modifying this variable as its used later/in a different fashion
-        awk {'print $1"\t" $2"\t"$3'} $path_zpool_list | grep -v syspool >> $outfile
+        awk {'print $1"\t" $2"\t"$3'} $path_zpool_list | grep -v $syspool_name >> $outfile
         echo  >> $outfile
         perf_req "There is more than 1 pool on this system. This is sub-optimal for ARC metadata performance. Please move a pool to the other node, if appropriate, to balance workload."
         pweight=$(echo $pweight - 1 | bc )
     elif [[ $poolcount -eq "1" ]]; then 
         # don't bother with these tests if there's more than 1 pool imported (for the time being, may change later)
         # pool_create_date=$(grep "zpool create" $path_zfs_history | grep $poolpresent | cut -f 1 -d ".") # doesn't work if the pool's been renamed
-        pool_create_date=$(grep "zpool create" $path_zpool_history | grep -v syspool | cut -f 1 -d ".") 
+        pool_create_date=$(grep "zpool create" $path_zpool_history | grep -v $syspool_name | cut -f 1 -d ".") 
     
-        awk {'print $1"\t" $2"\t"$3'} $path_zpool_list | grep -v syspool >> $outfile
+        awk {'print $1"\t" $2"\t"$3'} $path_zpool_list | grep -v $syspool_name >> $outfile
         echo  "Created $pool_create_date" >> $outfile
         echo  >> $outfile
     # TODO sed instead of perl    vdev_count_mirror=$(sed -n '/\$poolpresent/,/\(^$\|logs\|spares\|cache\)/p' $path_zpool_status | grep c[0-9] | wc -l)
-    # TODO also I think we fall on the syspool vdevs with the mirror test
+    # TODO also I think we fall on the $syspool_name vdevs with the mirror test
         if [[ -e $path_echo_spa_c_mdb_k ]]; then
             vdev_count_mirror=$(perl -00ne 'if ($_ =~ /$poolpresent/) {chomp($_); printf "%s\n",$_}' $path_echo_spa_c_mdb_k | grep "mirror" |wc -l)
             vdev_count_raidz=$(perl -00ne 'if ($_ =~ /$poolpresent/) {chomp($_); printf "%s\n",$_}' $path_echo_spa_c_mdb_k | grep "raidz" |wc -l)

@@ -39,7 +39,7 @@ main () {
     fi
     
     if [[ $(echo $dumpd|awk -F= '{print $2}') != 'swap' ]]; then
-        dumpr=$(grep -E 'syspool/dump +volsize ' $path_zfs_get_all | awk '{print $3}')
+        dumpr=$(grep -E '$syspool_name/dump +volsize ' $path_zfs_get_all | awk '{print $3}')
         if [[ $dumpr ]]; then
             dump=$(( $dumpr / 1024 ** 3 + 1 ))
             echo  "Dump Size   = $dump GB" >> $outfile

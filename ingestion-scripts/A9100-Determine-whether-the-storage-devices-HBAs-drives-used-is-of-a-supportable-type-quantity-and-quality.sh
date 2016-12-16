@@ -24,7 +24,7 @@ main () {
     if [[ $is_sata -gt 0 ]]; then
            echo  "" >> $outfile
            echo  "* WARNING! $is_sata $C_YELLOW SATA disks$C_RESET are installed" >> $outfile
-       perf_req "SATA drives are historically prone to cause performance issues and are not recommended for use in general but permitted for syspool."
+       perf_req "SATA drives are historically prone to cause performance issues and are not recommended for use in general but permitted for $syspool_name."
     fi
     
 

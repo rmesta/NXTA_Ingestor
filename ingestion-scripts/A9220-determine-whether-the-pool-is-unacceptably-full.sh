@@ -11,7 +11,7 @@ source "$NXTA_INGESTOR/ingestion-scripts/csum_functions.sh"
 
 main () {
 # Task: determine whether the pool is unacceptably full
-    poolfull=$(grep "[6-9][0-9]%" $path_zpool_list | grep -v syspool | awk '{print $1"\t"$2"\t" $3}')
+    poolfull=$(grep "[6-9][0-9]%" $path_zpool_list | grep -v $syspool_name | awk '{print $1"\t"$2"\t" $3}')
     poolfull_percent=$(echo $poolfull | awk "{print $3}")
     if [[ $long_output = "yes" && $pool_full ]]; then
         if [[ $poolfull_percent =~ [6-7][0-9]*  ]]; then
@@ -30,7 +30,7 @@ main () {
             pweight=$(echo $pweight - 2 | bc )
     fi
     
-    FILESYSTEMS=$(grep "type.*volume" $path_zfs_get_all | grep -v syspool | grep -v "nza[-_]reserve" | awk '{print $1}')
+    FILESYSTEMS=$(grep "type.*volume" $path_zfs_get_all | grep -v $syspool_name | grep -v "nza[-_]reserve" | awk '{print $1}')
     for i in $FILESYSTEMS; do
         AVAILABLE=$(grep "$i " $path_zfs_get_all | grep available | awk '{print $3}')
         USED=$(grep "$i " $path_zfs_get_all | grep " used " | awk '{print $3}')

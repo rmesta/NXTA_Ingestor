@@ -234,7 +234,7 @@ case $appl_version in
         filename_init "bundle"
         echo  "*** Note: diagnostic ability is limited due to Bundle format." >> $outfile
         my_license_features=$(python -m json.tool $BUNDLE_DIR/nef/license.json | sed -e "1,/features/d" -e '/\}/,$d' -e 's/\"//g')
-        license_expire=$(python -m json.tool $BUNDLE_DIR/nef/license.json | grep expires | cut -f 4 -d \")
+        license_expire=$(python -m json.tool $BUNDLE_DIR/nef/license.json | grep ends | cut -f 4 -d \")
         my_license_type="" # needed for other node detection, perhaps not needed here
         my_hostname=$( cat $BUNDLE_DIR/system/hostname.out )
         my_domain=$( cat $BUNDLE_DIR/network/domainname.out )
@@ -242,11 +242,12 @@ case $appl_version in
         arc_meta_used=$(grep 'arc_meta_used' $path_echo_arc_mdb)
         arc_meta_limit=$(grep 'arc_meta_limit' $path_echo_arc_mdb)
         arc_meta_max=$(grep 'arc_meta_max' $path_echo_arc_mdb)
-        uptime=""
-        dumpd=""
+        uptime=$(cat system/uptime.out)
         col_terminated="$NULL"
+		syspool_name="rpool"
+		dumpd=$(grep -e '^DUMPADM_DEVICE' rootDir/etc/dumpadm.conf)
     ;;
-    "4.0.4"*|"3.1.6"*|*) 
+    "4.0.4"*|"3.1.6"*|"4.0.5"*) 
         if [[ -x $version_collector ]]; then
             echo  "Unable to identify bundle/collector, exiting but defining static variables." >> $outfile
             exit
@@ -269,6 +270,7 @@ case $appl_version in
         uptime=$(cat $BUNDLE_DIR/system/uptime.out)
         dumpd=$(grep -e '^DUMPADM_DEVICE' $BUNDLE_DIR/kernel/dumpadm.conf)
         col_terminated=$(grep -H terminated $BUNDLE_DIR/*/*.stats | grep -v smbstat | wc -l)
+		syspool_name="syspool"
         ;;
     *)
         echo  "Something went sideways with appliance version detection: appl_version $appl_version" >> $outfile

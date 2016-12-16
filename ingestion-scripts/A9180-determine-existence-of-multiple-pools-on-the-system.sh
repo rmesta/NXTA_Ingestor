@@ -22,7 +22,7 @@ main () {
         fi
         echo  >> $outfile
         echo  "Pool Block/Record Sizes:" >> $outfile
-        egrep "blocksize|recordsize" $path_zfs_get_all | grep -v syspool |  awk '{print $3}' | sort | uniq -c
+        egrep "blocksize|recordsize" $path_zfs_get_all | grep -v $syspool_name |  awk '{print $3}' | sort | uniq -c
     fi
 
 	# cleanup 

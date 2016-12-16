@@ -12,7 +12,7 @@ source "$NXTA_INGESTOR/ingestion-scripts/csum_functions.sh"
 main () {
 # Task: general workload summarization of services and client connectivity for iSCSI
     #iscsi checks
-    pool_vol=$(grep "type.*volume" $path_zfs_get_all | grep -v syspool | wc -l)
+    pool_vol=$(grep "type.*volume" $path_zfs_get_all | grep -v $syspool_name | wc -l)
     if [[ $pool_vol -gt 0 ]]; then
         echo  >> $outfile
         echo  " * Block volumes: $pool_vol" >> $outfile

@@ -11,7 +11,7 @@ source "$NXTA_INGESTOR/ingestion-scripts/csum_functions.sh"
 
 main () {
 # Task: general workload summarization of services and client connectivity for CIFS
-    pool_smb=$(grep sharesmb $path_zfs_get_all | grep -v "sharesmb *off" | grep -v syspool | wc -l)
+    pool_smb=$(grep sharesmb $path_zfs_get_all | grep -v "sharesmb *off" | grep -v $syspool_name | wc -l)
     if [[ $pool_smb -gt 0 ]]; then 
         printf  " * SMB filesystems: $pool_smb\n" >> $outfile
         smb_workers_cur=$(grep smb_workers $path_echo_taskq_mdb_k  | awk {'print $3'} | cut -f 1 -d "/")

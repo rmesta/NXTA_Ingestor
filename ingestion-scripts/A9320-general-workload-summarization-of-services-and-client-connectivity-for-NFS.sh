@@ -12,7 +12,7 @@ source "$NXTA_INGESTOR/ingestion-scripts/csum_functions.sh"
 main () {
 # Task: general workload summarization of services and client connectivity for NFS
     # nfs checks
-    pool_nfs=$(grep sharenfs $path_zfs_get_all | grep -v "sharenfs *off" | grep -v syspool | wc -l)
+    pool_nfs=$(grep sharenfs $path_zfs_get_all | grep -v "sharenfs *off" | grep -v $syspool_name | wc -l)
     if [[ $pool_nfs -gt 0 ]]; then
         echo  >> $outfile
         echo  " * NFS filesystems: $pool_nfs" >> $outfile

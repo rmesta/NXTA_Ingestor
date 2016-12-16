@@ -30,7 +30,7 @@ main () {
 	# TODO need to more clearly define what it is we're testing for the MegaRAID controllers
 	
 	if [[ $(grep mr_sas $path_hddisco | wc -l) -gt "2" ]]; then
-	    printf  "\t* mr_sas in use on this system on non-syspool drives.\n" >> $outfile
+	    printf  "\t* mr_sas in use on this system on non-$syspool_name drives.\n" >> $outfile
 	    mr_sas_lsidriver=$(grep driver-storage-mr-sas-nexenta $path_pkglist)
 	    if [[ $mr_sas_lsidriver = "" ]]; then
 	        printf  "\t* However, the correct LSI/Nexenta driver is not in use!\n" >> $outfile
