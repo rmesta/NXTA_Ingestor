@@ -112,7 +112,8 @@ main () {
         echo  "ARC Current Size (arcstats:size)  = $arc_size_size" >> $outfile
         echo  "" >> $outfile
     fi
-    
+   	# if arc_max is zero AND arc_meta_used is high, AND ARC c is high (say,
+   	# within 10% of max memory, or perhaps sans-20G or...) TODO   
     if [[ ($arc_max = "0") ]]; then
         printf  "* Warning:$C_YELLOW zfs_arc_max is not set$C_RESET. This is potentially dangerous as we can overrun system processes. See: NEX-1760, NEX-6611\n"  >> $outfile
     fi

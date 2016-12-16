@@ -23,8 +23,11 @@ main () {
 	    perf_req "Primary cache set to 'metadata' effectively disable ARC for non-ZIL ! Performance will not be good. Please remedy."
 	    pweight=$(echo $pweight - 1 | bc )
 	fi
-
-
+	compression_state_off=$(grep " compression " $path-zfs_get_all | awk {'print $1,$2,$3'} | grep -v syspool | grep off$) 
+	if [[ $(printf "$compression_state_off" | wc -l) -gt 0 ]]; then
+		printf "\t * compression is set to 'off' on the following volumes. This will cause buffers in L2 ARC to be uncompressed and may consume more memory than anticipated.\n" >> $outfile
+		printf "$compression_state_off\n" >> $outfile
+	fi
 	# cleanup 
 	if [[ $(wc -w $outfile | awk {'print $1'}) -lt "1" ]]; then 
 		rm $outfile
