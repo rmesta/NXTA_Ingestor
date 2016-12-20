@@ -111,18 +111,18 @@ main () {
         echo  "ARC Min Size     (arcstats:c_min) = $arc_min_size" >> $outfile
         echo  "ARC Current Size (arcstats:size)  = $arc_size_size" >> $outfile
         echo  "" >> $outfile
-    fi
+
    	# if arc_max is zero AND arc_meta_used is high, AND ARC c is high (say,
-   	# within 10% of max memory, or perhaps sans-20G or...) TODO   
-    if [[ ($arc_max = "0") ]]; then
-        printf  "* Warning:$C_YELLOW zfs_arc_max is not set$C_RESET. This is potentially dangerous as we can overrun system processes. See: NEX-1760, NEX-6611\n"  >> $outfile
-    fi
-    # TODO arc_max detection is wrong, also need to determine overhead related to NEX-1760/NEX-6611
-    if [[ ! ($arc_max = "0") ]]; then
-        printf  "\n* zfs_arc_max is set in /etc/system.\n" >> $outfile
-        echo  "zfs_arc_max = $arc_max GB" >> $outfile
-    fi
-    
+   	# within 20G of max memory, or perhaps sans-20G or...) TODO
+    	arc_max_size_num=$(echo $arc_max_size | cut -f 1 -d " ")
+    	arc_free_mem=$(echo "$mem - $arc_max_size_num" | bc | cut -f 1 -d ".")
+    	if [[ "$arc_max_size_num" -gt "$(echo "$arc_free_mem - 20" | bc)" ]]; then
+        	printf  "* Notice: $arc_free_mem GB RAM remains for non-ARC system process operation. (See: NEX-1760, NEX-6611).\n" >> $outfile
+        	if [[ ($arc_max = "0") ]]; then
+            	printf  "* Notice: zfs_arc_max is not set.\n" >> $outfile
+        	fi
+    	fi
+fi
 
 	# cleanup 
 	if [[ $(wc -w $outfile | awk {'print $1'}) -lt "1" ]]; then 
