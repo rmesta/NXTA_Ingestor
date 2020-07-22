@@ -3012,7 +3012,7 @@ def itadm_list_tpg_json(bdir):
 #
 # XXX - The following files don't need to be converted; just checked
 #       for whether someone has modified them by comparison to their
-#       corresponding master copy.
+#       corresponding main copy.
 #
 #       comstar/stmf_sbd.conf, disk/sd.conf, disk/mpt_sas.conf
 #
