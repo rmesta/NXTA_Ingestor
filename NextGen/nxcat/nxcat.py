@@ -135,10 +135,10 @@ def get_opthac():
             elif val == 'node1' or val == 'node2':
                 try:
                     if json_data[c][val]['machid'] == machid:
-                        node = 'master'
+                        node = 'main'
                         print_bold('Primary Node Info', 'white', True)
                     else:
-                        node = 'slave'
+                        node = 'subordinate'
                         print 'Secondary Node Info'
 
                 except KeyError:
@@ -147,7 +147,7 @@ def get_opthac():
                 if 'hostname' in json_data[c][val]:
                     host = json_data[c][val]['hostname']
                     print '\tHostname:\t',
-                    if node == 'master':
+                    if node == 'main':
                         print_warn(host, True)
                     else:
                         print_lite(host, 'white', True)
@@ -155,7 +155,7 @@ def get_opthac():
                 if 'machid' in json_data[c][val]:
                     mcid = json_data[c][val]['machid']
                     print '\tMachine ID:\t',
-                    if node == 'master':
+                    if node == 'main':
                         print_warn(mcid, True)
                     else:
                         print_lite(mcid, 'white', True)
@@ -163,7 +163,7 @@ def get_opthac():
                 if 'mntpt' in json_data[c][val]:
                     mpnt = json_data[c][val]['mntpt']
                     print '\tMnt Point:\t',
-                    if node == 'master':
+                    if node == 'main':
                         print_warn(mpnt, True)
                     else:
                         print_lite(mpnt, 'white', True)
@@ -171,7 +171,7 @@ def get_opthac():
                 if 'zpool_guid' in json_data[c][val]:
                     guid = json_data[c][val]['zpool_guid']
                     print '\tZPool GUID:\t',
-                    if node == 'master':
+                    if node == 'main':
                         print_warn(guid, True)
                     else:
                         print_lite(guid, 'white', True)
